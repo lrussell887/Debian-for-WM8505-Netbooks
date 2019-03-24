@@ -26,7 +26,6 @@ I recommend building this on a Debian system closely matching the version you ar
 * binfmt-support
 * build-essential
 * debian-archive-keyring
-* debootstrap
 * gcc-arm-linux-gnueabi
 * libncurses5-dev
 * libssl-dev

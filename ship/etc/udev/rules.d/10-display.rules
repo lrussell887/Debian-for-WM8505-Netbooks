@@ -1,0 +1,2 @@
+ACTION=="add", SUBSYSTEM=="backlight", ATTR{brightness}="7"
+ACTION=="add", SUBSYSTEM=="platform", DRIVER=="wm8505-fb", ATTR{contrast}="128"

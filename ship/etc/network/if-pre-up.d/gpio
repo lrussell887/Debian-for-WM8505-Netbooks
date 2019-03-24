@@ -1,0 +1,8 @@
+#!/bin/sh
+if [ "$LOGICAL" = wlan0 ]; then
+	stdbuf -oL udevadm monitor -s net | grep -m1 "\\badd\\b.*\\b$LOGICAL\\b" > /dev/null &
+	echo 2 > /sys/class/gpio/export
+	echo out > /sys/class/gpio/gpio2/direction
+	echo 1 > /sys/class/gpio/gpio2/value
+	wait
+fi

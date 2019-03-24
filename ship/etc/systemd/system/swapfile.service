@@ -1,0 +1,9 @@
+[Unit]
+Description=Generate swapfile
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/swapfile
+
+[Install]
+WantedBy=multi-user.target

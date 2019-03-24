@@ -1,0 +1,8 @@
+[Unit]
+Description=Swapfile
+
+[Swap]
+What=/var/swapfile
+
+[Install]
+WantedBy=multi-user.target

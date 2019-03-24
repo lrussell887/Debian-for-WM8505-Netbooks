@@ -1,0 +1,6 @@
+[MATCH]
+Path=platform-d8007100.ehci-usb-0:2.2:1.0
+
+[LINK]
+NamePolicy=
+Name=wlan0

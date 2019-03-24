@@ -1,0 +1,5 @@
+#!/bin/sh
+if [ "$LOGICAL" = wlan0 ]; then
+	echo 0 > /sys/class/gpio/gpio2/value
+	echo 2 > /sys/class/gpio/unexport
+fi

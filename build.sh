@@ -60,7 +60,3 @@ rm rootfs/lib/modules/4.5.0/build rootfs/lib/modules/4.5.0/source
 # Build the boot and rootfs archives
 zip -r boot.zip script/
 tar -C rootfs -czf rootfs.tar.gz .
-
-# Alert that build has completed
-echo "The build has completed. Please ensure no errors have occurred in the previous steps."
-echo "If all appears successful, you may now continue with the boot.zip and rootfs.tar.gz files."

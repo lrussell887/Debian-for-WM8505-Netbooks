@@ -1,2 +1,0 @@
-iface wlan0 inet manual
-        wpa-roam /etc/wpa_supplicant/wpa_supplicant.conf

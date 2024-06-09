@@ -1,44 +1,36 @@
 # Debian for Wondermedia 8505 Netbooks
-This repository is a further amalgamation of work done by many others to bring Debian to WM8505-powered netbooks. In my case, the Sylvania SYNET07526. While they have gotten close, no other projects have offered a fully-functioning build for the device. This project aims to change that, creating a kernel build complete with modules and a Debian system complete with all standard utilities.
+This project delivers a complete Debian build for WM8505-powered netbooks. It has been specifically built for the Sylvania SYNET07526, though it should work on similar devices. It utilizes the `config.armel_none_marvell` configuration from Debian's [linux-config-6.1](https://packages.debian.org/bookworm/armel/linux-config-6.1) armel package, adapting it to the WM8505. This ensures that all standard kernel modules are compiled, offering plug-and-play support for USB Wi-Fi, ethernet, sound cards, and other devices.
 
 ## Credits
-Much of this work has been inspired by [wh0's bookconfig](https://github.com/wh0/bookconfig) project. The *kernel.tar.xz* file included is a direct clone of their kernel repository, simply included for ease of use. They were able to bring the custom device drivers needed in the kernel to a more modern Linux 4.5. Many of the scripts (including networking and udev) found in the *etc* folder were borrowed from their repository as well. Key build steps were also taken from [jubinson's debian-rootfs](https://github.com/jubinson/debian-rootfs) in order to effectively use Multistrap in the build process. I would also like to thank those involved in the [linux-vtwm](https://github.com/linux-wmt/linux-vtwm) project for their work in developing Kernel support for these devices.
+This work is largely based on [wh0's bookconfig](https://github.com/wh0/bookconfig). The kernel is downloaded directly from their repository, which itself is a rebase of the abandoned [linux-vtwm](https://github.com/linux-wmt/linux-vtwm) project. It goes without saying this would not have been possible without their work.
 
-## Build disclosures
-* Debian is pre-configured during the build process, it will boot directly in a ready-to-use system.
-* You will need to first login as root, which has no password set. I recommend immediately setting one and creating user account(s).
-* The hostname is set to *netbook* by default.
-* A 512 MB swap file is generated and enabled on first boot. I suggest keeping this given these systems have only 128 MB of RAM.
-* WPA Supplicant and OpenSSH Server are also included beyond the standard utilities.
-* *Predictable Network Interface Names* have been disabled in Systemd for the sake of Wi-Fi configuration.
-* The *resolv.conf* configuration file is set to use Google DNS.
-* The *eth0* interface is set to allow-hotplug and to use DHCP. Interface *wlan0* is set to manual, *wpa-cli* may be used to configure Wi-Fi.
+## Build Details
+- **Packages:** The `multistrap.conf` file integrates all of Debian's standard system utilities typically selected by `tasksel`. Additional packages are included to provide Wi-Fi support, along with `openssh-server`, `sudo`, and `htop`.
+- **First-Boot Setup:** The initial setup takes approximately 30 minutes, where you will be prompted to configure the hostname, timezone, and create a user account. This user is added to the `sudo` group since a root password is not configured.
+- **Swap File:** A 256 MB swap file is created and activated at first boot. It is handled by `var-swapfile.swap`.
+- **Wi-Fi Configuration:** The Wi-Fi adapter is enabled on boot by default using `wlan-gpio.service`. You can configure your network via `nmtui`.
+- **Display Brightness:** Brightness is managed by `/etc/udev/rules.d/10-display.rules` and defaults to full brightness (value 128). Changes require file modification and a reboot. The kernel also now defaults to 128 (rather than 16), meaning the screen will be full brightness during startup.
+- **Audio Support:** Built-in audio is currently not working.
 
-## Pre-compiled builds
-Builds are available under the releases page, download both the *boot.zip* and *rootfs.tar.gz* files for the build you would like and skip to the "Using the build" section.
+## Pre-compiled Builds
+Pre-compiled builds are available on the Releases page. Download the `boot.zip` and `rootfs.tar.gz` files for the current build, then proceed to the "Using the Build" section below.
 
-## Build procedure
-I recommend building this on a Debian system closely matching the version you are building. I personally used Debian 9.8 with XFCE in a virtual machine. Clone this repository to your machine and ensure the necessary packages are installed. Set *build.sh* to executable if it's not already, and run it! Once it has completed, you will have *boot.zip* and *rootfs.tar.gz* files in the parent directory.
+## Build Procedure
+The build requires a Debian-based system due to its use of `multistrap`. You must also run as root. Follow these steps:
 
-### Required packages
-* aptitude
-* bc
-* binfmt-support
-* build-essential
-* debian-archive-keyring
-* gcc-arm-linux-gnueabi
-* libncurses5-dev
-* libssl-dev
-* multistrap
-* qemu-user-static
-* u-boot-tools
-* zip
+1. Clone this repository.
+2. Install the necessary packages: `bc binfmt-support build-essential debian-archive-keyring gcc-arm-linux-gnueabi libncurses5-dev libssl-dev multistrap u-boot-tools zip`
+3. Run `build.sh` to start the build process. The resulting `boot.zip` and `rootfs.tar.gz` files will be created in the parent directory.
 
-## Using the build
-In order to get a build running, you will need an 8 GB SD card (recommended, it can be smaller) and a Linux machine with GParted. On the card, first create a 16 MB FAT16 partition, followed by an EXT4 partition that fills the rest of the card. You will then want to extract the *boot.zip* file to the FAT16 partition, and *rootfs.tar.gz* file to the EXT4 partition. Once that is completed, insert the card into your netbook and boot into your new Debian system!
+## Using the Build
+You will need an SD card (tested up to 32 GB) with two partitions:
 
-### Extraction example
-```
+1. A 32 MB FAT32 partition
+2. An EXT4 partition using the remaining space
+
+### Extraction Steps
+As root:
+```bash
 cd /mnt
 mkdir boot rootfs
 mount /dev/sd*1 boot/
@@ -49,5 +41,5 @@ umount boot/ rootfs/
 eject /dev/sd*
 ```
 
-### Partition example
-![GParted partition example screenshot](http://i.imgur.com/ar47xMb.png)
+### Partition Example
+![GParted partition example screenshot](https://i.imgur.com/gRDMqo1.png)

@@ -1,0 +1,35 @@
+#!/bin/sh
+{
+    export PATH &&
+
+    read -p "Hostname: " hostname &&
+    echo "$hostname" > /etc/hostname &&
+
+    cat > /etc/hosts <<EOF
+127.0.0.1	localhost
+127.0.1.1	$hostname
+
+# The following lines are desirable for IPv6 capable hosts
+::1     localhost ip6-localhost ip6-loopback
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+EOF
+
+    mv /sbin/init.orig /sbin/init &&
+
+    /var/lib/dpkg/info/base-passwd.preinst install &&
+    dpkg --configure -a &&
+
+    read -p "Username for your account: " username &&
+    adduser --gecos "" "$username" &&
+    adduser "$username" sudo &&
+
+    fallocate -l 256M /var/swapfile &&
+    chmod 600 /var/swapfile &&
+    mkswap /var/swapfile &&
+    systemctl enable var-swapfile.swap &&
+
+    systemctl enable wlan-gpio.service &&
+
+    exec /sbin/init
+} || exec /bin/sh

@@ -1,61 +1,56 @@
-# !/bin/bash
-set -x
+#!/bin/bash
+set -xe
+export ARCH=arm
+export CROSS_COMPILE=arm-linux-gnueabi-
+export CFLAGS="-march=armv5te -mtune=arm926ej-s"
 
-# Extract a copy of the kernel
-tar xf kernel.tar.xz
+# Get a copy of the kernel, specifically wh0's rebase v6.1.44 commit from GitHub
+if [ ! -f "kernel-6.1.44.tar.gz" ]; then
+    wget https://github.com/wh0/bookconfig/archive/73f9c8153576860d61abd987acdb5e2773aeafca.tar.gz -O kernel-6.1.44.tar.gz
+fi
+mkdir -p kernel
+tar -C kernel -xzf kernel-6.1.44.tar.gz --strip-components=1
 
 # Fix screen contrast bug
 # See https://groups.google.com/d/msg/vt8500-wm8505-linux-kernel/-5V20yDM4jQ/sjlXNF8PAwAJ
 sed -i 's/fbi->contrast = 0x10/fbi->contrast = 0x80/g' kernel/drivers/video/fbdev/wm8505fb.c
 
 # Build the kernel configuration file
-# The baseconfig file is from archived Debian kernel package "linux-source-4.5_4.5.4-1"
-# The seed modifies the config to match architecture and other settings
-./kernel/scripts/kconfig/merge_config.sh -m baseconfig seed
-mv .config config
-make -C kernel ARCH=arm KCONFIG_CONFIG=../config olddefconfig
+# Create a seeded defconfig
+cp seed .config
+make -C kernel KCONFIG_CONFIG=../.config olddefconfig
+# Extract the enabled config options to make a defconfig seed
+grep -E '=y' .config > .defconfig_seed
+# Create a seeded Debian kernel config file based on armel_none_marvell from linux-config-6.1
+./kernel/scripts/kconfig/merge_config.sh -m config.armel_none_marvell seed
+# Merge the defconfig seed into the Debian kernel config
+./kernel/scripts/kconfig/merge_config.sh -m .config .defconfig_seed
+# Generate final kernel config
+make -C kernel KCONFIG_CONFIG=../.config olddefconfig
 
 # Build the kernel
-make -C kernel ARCH=arm KCONFIG_CONFIG=../config CROSS_COMPILE=arm-linux-gnueabi- CFLAGS="-march=armv5te -mtune=arm926ej-s" -j$(nproc) zImage wm8505-ref.dtb
+make -C kernel KCONFIG_CONFIG=../.config -j$(nproc) zImage wm8505-ref.dtb
 cat kernel/arch/arm/boot/zImage kernel/arch/arm/boot/dts/wm8505-ref.dtb > zImage_w_dtb
 
-# Build the kernel and boot images
+# Build the kernel modules
+make -C kernel KCONFIG_CONFIG=../.config -j$(nproc) modules
+
+# Build the kernel image and boot image
 mkdir -p script
 mkimage -A arm -O linux -T kernel -C none -a 0x8000 -e 0x8000 -n linux -d zImage_w_dtb script/uzImage.bin
 mkimage -A arm -O linux -T script -C none -a 1 -e 0 -n "script image" -d cmd script/scriptcmd
 
-# Build the kernel modules
-make -C kernel ARCH=arm KCONFIG_CONFIG=../config CROSS_COMPILE=arm-linux-gnueabi- CFLAGS="-march=armv5te -mtune=arm926ej-s" -j$(nproc) CFLAGS_MODULE=-fno-pic modules
-
-# Append standard Debian packages to multistrap.conf
-# The aptitude search is based on tasksel's "standard system utilities"
-# Since package 'dmidecode' is not present on armel, it is removed
-aptitude search ~pstandard ~prequired ~pimportant -F%p | tr '\n' ' ' | sed 's/dmidecode //g' >> multistrap.conf
-
 # Build the rootfs
-multistrap -a armel -f multistrap.conf
+multistrap -f multistrap.conf
+
+# Move init for first boot setup
+mv rootfs/sbin/init rootfs/sbin/init.orig
 
 # Merge ship folder into rootfs
-# It contains configuration for hosts, networking, display, and swap
-cp -a ship/. rootfs/
-
-# Configure the rootfs
-# Dash pre-inst is required, as dpkg will fail without it
-# The root password is disabled, and swapfile service enabled
-export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true LC_ALL=C LANGUAGE=C LANG=C
-cp /usr/bin/qemu-arm-static rootfs/usr/bin
-mount -o bind /dev/ rootfs/dev/
-chroot rootfs /var/lib/dpkg/info/dash.preinst install
-chroot rootfs dpkg --configure -a
-chroot rootfs passwd -d root
-chroot rootfs systemctl enable swapfile.service
-rm rootfs/usr/bin/qemu-arm-static
-umount rootfs/dev
+cp -r ship/. rootfs/
 
 # Install kernel modules into rootfs
-# Also delete the broken symlinks to build and source folders
-make -C kernel ARCH=arm KCONFIG_CONFIG=../config INSTALL_MOD_PATH=../rootfs modules_install
-rm rootfs/lib/modules/4.5.0/build rootfs/lib/modules/4.5.0/source
+make -C kernel KCONFIG_CONFIG=../.config INSTALL_MOD_PATH=../rootfs modules_install
 
 # Build the boot and rootfs archives
 zip -r boot.zip script/

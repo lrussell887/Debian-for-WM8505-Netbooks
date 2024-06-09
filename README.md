@@ -1,12 +1,14 @@
 # Debian for Wondermedia 8505 Netbooks
 This project delivers a complete Debian build for WM8505-powered netbooks. It has been specifically built for the Sylvania SYNET07526, though it should work on similar devices. It utilizes the `config.armel_none_marvell` configuration from Debian's [linux-config-6.1](https://packages.debian.org/bookworm/armel/linux-config-6.1) armel package, adapting it to the WM8505. This ensures that all standard kernel modules are compiled, offering plug-and-play support for USB Wi-Fi, ethernet, sound cards, and other devices.
 
+![Netbook running Debian](https://i.imgur.com/73nZJa5.png)
+
 ## Credits
 This work is largely based on [wh0's bookconfig](https://github.com/wh0/bookconfig). The kernel is downloaded directly from their repository, which itself is a rebase of the abandoned [linux-vtwm](https://github.com/linux-wmt/linux-vtwm) project. It goes without saying this would not have been possible without their work.
 
 ## Build Details
 - **Packages:** The `multistrap.conf` file integrates all of Debian's standard system utilities typically selected by `tasksel`. Additional packages are included to provide Wi-Fi support, along with `openssh-server`, `sudo`, and `htop`.
-- **First-Boot Setup:** The initial setup takes approximately 30 minutes, where you will be prompted to configure the hostname, timezone, and create a user account. This user is added to the `sudo` group since a root password is not configured.
+- **First Boot:** It takes approximately 25 minutes to finish setting up packages on first boot. You will be prompted to set a hostname, configure your timezone, and create a user account. This user is added to the `sudo` group since a root password is not configured.
 - **Swap File:** A 256 MB swap file is created and activated at first boot. It is handled by `var-swapfile.swap`.
 - **Wi-Fi Configuration:** The Wi-Fi adapter is enabled on boot by default using `wlan-gpio.service`. You can configure your network via `nmtui`.
 - **Display Brightness:** Brightness is managed by `/etc/udev/rules.d/10-display.rules` and defaults to full brightness (value 128). Changes require file modification and a reboot. The kernel also now defaults to 128 (rather than 16), meaning the screen will be full brightness during startup.
@@ -29,7 +31,7 @@ You will need an SD card (tested up to 32 GB) with two partitions:
 2. An EXT4 partition using the remaining space
 
 ### Extraction Steps
-As root:
+After partitioning your SD card, do the following as root, substituting `/dev/sd*` with the correct device:
 ```bash
 cd /mnt
 mkdir boot rootfs

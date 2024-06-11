@@ -4,12 +4,12 @@ export ARCH=arm
 export CROSS_COMPILE=arm-linux-gnueabi-
 export CFLAGS="-march=armv5te -mtune=arm926ej-s"
 
-# Get a copy of the kernel, specifically wh0's rebase v6.1.44 commit from GitHub
-if [ ! -f "kernel-6.1.44.tar.gz" ]; then
-    wget https://github.com/wh0/bookconfig/archive/73f9c8153576860d61abd987acdb5e2773aeafca.tar.gz -O kernel-6.1.44.tar.gz
+# Get a copy of the rebased linux-vtwm kernel
+if [ ! -f "kernel.tar.gz" ]; then
+    wget https://github.com/lrussell887/linux-vtwm/archive/refs/heads/kernel.tar.gz -O kernel.tar.gz
 fi
 mkdir -p kernel
-tar -C kernel -xzf kernel-6.1.44.tar.gz --strip-components=1
+tar -C kernel -xzf kernel.tar.gz --strip-components=1
 
 # Fix screen contrast bug
 # See https://groups.google.com/d/msg/vt8500-wm8505-linux-kernel/-5V20yDM4jQ/sjlXNF8PAwAJ

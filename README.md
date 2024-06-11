@@ -25,7 +25,7 @@ The build requires a Debian-based system due to its use of `multistrap`. You mus
 3. Run `build.sh` to start the build process. The resulting `boot.zip` and `rootfs.tar.gz` files will be created in the parent directory.
 
 ## Using the Build
-You will need an SD card (tested up to 32 GB) with two partitions:
+You will need an SD card (tested up to 64 GB) with two partitions:
 
 1. A 32 MB FAT32 partition
 2. An EXT4 partition using the remaining space

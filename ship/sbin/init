@@ -29,6 +29,7 @@ EOF
     mkswap /var/swapfile &&
     systemctl enable var-swapfile.swap &&
 
+    update-alternatives --set regulatory.db /lib/firmware/regulatory.db-upstream &&
     systemctl enable wlan-gpio.service &&
 
     exec /sbin/init

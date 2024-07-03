@@ -1,11 +1,13 @@
-# Debian for Wondermedia 8505 Netbooks
-This project delivers a complete, modern Debian build for WM8505-powered netbooks. It has been specifically tested for the Sylvania SYNET07526, the sub-$100 netbook [peddled by CVS in 2011](https://www.yourwarrantyisvoid.com/2011/01/08/hardware-pr0n-sylvania-netbook-from-cvs/).
+# Debian for Wondermedia WM8505 Netbooks
+This project delivers a complete, modern Debian build for WM8505-powered netbooks. It has been specifically tested for the Sylvania SYNET07526, the sub-$100 netbook [peddled by CVS in 2011](https://www.yourwarrantyisvoid.com/2011/01/08/hardware-pr0n-sylvania-netbook-from-cvs/). It should work on other generic WM8505 netbooks, along with WM8650 with some minor adjustments*.
+
+![Netbook running Debian](https://i.imgur.com/73nZJa5.png)
 
 The [kernel](https://github.com/lrussell887/linux-vtwm) used is a rebase of linux-vtwm, a repository with patches for VIA VT8500 and Wondermedia WM8xxx SoCs. The build script automatically rebases it further to the latest 6.1.x release from upstream, fetches the [linux-config-6.1](https://packages.debian.org/bookworm/armel/linux-config-6.1) package from Debian, and adapts the most similar target, `config.armel_none_marvell`, to be compatible with the netbook using a combination of options from the `seed` and the kernel's defconfig. `multistrap` is used to build the Debian root filesystem, and includes all standard system utilities.
 
 This ensures you have an up-to-date kernel with all the standard kernel modules and packages you would expect from a stock Debian system. USB sound cards, Wi-Fi cards, and network adapters all work as expected.
 
-![Netbook running Debian](https://i.imgur.com/73nZJa5.png)
+\* I have been unable to test the WM8650 since I only have WM8505 devices. The kernel options should be the same, so I would expect it to at least boot. The `wm8505fb.patch` would likely need to be reverted since WM8650+ uses a [different pixel format](https://groups.google.com/d/msg/vt8500-wm8505-linux-kernel/-5V20yDM4jQ/sjlXNF8PAwAJ), which can be done by deleting the file from the `patch` folder and building normally. Wi-Fi is also handled by GPIO in the `wlan-gpio.service`, which may differ between devices. If you are having trouble with one of these devices, please reach out to me as I may be able to assist.
 
 ## Credits
 Special thanks to [wh0's bookconfig](https://github.com/wh0/bookconfig) for providing a kernel 6.1.x rebase of the abandoned [linux-vtwm](https://github.com/linux-wmt/linux-vtwm) project. It goes without saying this would not have been possible without them.
@@ -46,7 +48,7 @@ mount /dev/sdX1 boot
 mount /dev/sdX2 rootfs
 unzip /path/to/boot.zip -d boot
 tar xvzf /path/to/rootfs.tar.gz -C rootfs
-umount boot/ rootfs/ && eject /dev/sdX
+umount boot rootfs && eject /dev/sdX
 ```
 
 ### Booting
@@ -63,5 +65,5 @@ rm -rf boot/*
 unzip /path/to/boot.zip -d boot
 rm -rf rootfs/lib/modules/*
 tar --skip-old-files -xzvf /path/to/modules.tar.gz -C rootfs
-umount boot/ rootfs/ && eject /dev/sdX
+umount boot rootfs && eject /dev/sdX
 ```

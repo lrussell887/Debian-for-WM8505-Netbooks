@@ -29,7 +29,7 @@ log() {
 # shellcheck disable=SC2329
 cleanup() {
     local rc=$?
-    popd || true
+    [ "$(dirs -p | wc -l)" -gt 1 ] && popd
     log INFO "Cleaning up previous build files"
     rm -rf .config .config.armel_none_marvell .config.old .seed.new .zImage_w_dtb modules/ rootfs/ script/
     if [ -d "$KERNEL_DIR" ]; then
@@ -148,14 +148,14 @@ cp -r ship/. rootfs/
 log INFO "Installing modules"
 make -C $KERNEL_DIR KCONFIG_CONFIG=../.config INSTALL_MOD_PATH=../rootfs modules_install
 log INFO "Creating rootfs archive"
-tar -C rootfs -czf build/rootfs.tar.gz .
+tar -C rootfs --use-compress-program=pigz -cf build/rootfs.tar.gz .
 log OK "rootfs.tar.gz created"
 
-log INFO "Building modules"
+log INFO "Installing modules"
 mkdir -p modules
 make -C $KERNEL_DIR KCONFIG_CONFIG=../.config INSTALL_MOD_PATH=../modules modules_install
 log INFO "Creating modules archive"
-tar -C modules -czf build/modules.tar.gz .
+tar -C modules --use-compress-program=pigz -cf build/modules.tar.gz .
 log OK "modules.tar.gz created"
 
 log OK "Build complete"

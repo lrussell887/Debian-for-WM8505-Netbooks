@@ -1,11 +1,21 @@
-#!/bin/sh
-{
-    export PATH &&
+#!/bin/bash
+set -e
+trap 'exec /bin/sh' ERR
+export PATH
 
-    read -p "Hostname: " hostname &&
-    echo "$hostname" > /etc/hostname &&
+cat << 'EOF'
 
-    cat > /etc/hosts <<EOF
+==========================
+Debian for WM8505 Netbooks
+     First Boot Setup
+==========================
+
+EOF
+
+# Set hostname
+read -rp "Enter a hostname: " hostname
+echo "$hostname" > /etc/hostname
+cat > /etc/hosts << EOF
 127.0.0.1	localhost
 127.0.1.1	$hostname
 
@@ -15,22 +25,32 @@ ff02::1 ip6-allnodes
 ff02::2 ip6-allrouters
 EOF
 
-    mv /sbin/init.orig /sbin/init &&
+# Collect account credentials
+read -rp "Username for your account: " username
+while true; do
+    read -srp "Enter password: " password; echo
+    read -srp "Confirm password: " password_confirm; echo
+    [ "$password" == "$password_confirm" ] && break || echo "Passwords do not match. Please try again."
+done
 
-    /var/lib/dpkg/info/base-passwd.preinst install &&
-    dpkg --configure -a &&
+# Finish configuring packages
+/var/lib/dpkg/info/base-passwd.preinst install
+dpkg --configure -a
 
-    read -p "Username for your account: " username &&
-    adduser --gecos "" "$username" &&
-    adduser "$username" sudo &&
+# Set account credentials
+adduser --disabled-password --gecos "" "$username"
+echo "$username:$password" | chpasswd
+adduser "$username" sudo
 
-    fallocate -l 256M /var/swapfile &&
-    chmod 600 /var/swapfile &&
-    mkswap /var/swapfile &&
-    systemctl enable var-swapfile.swap &&
+# Create swap file
+fallocate -l 256M /var/swapfile
+chmod 600 /var/swapfile
+mkswap /var/swapfile
+systemctl enable var-swapfile.swap
 
-    update-alternatives --set regulatory.db /lib/firmware/regulatory.db-upstream &&
-    systemctl enable wlan-gpio.service &&
+# Enable Wi-Fi service
+update-alternatives --set regulatory.db /lib/firmware/regulatory.db-upstream
+systemctl enable wlan-gpio.service
 
-    exec /sbin/init
-} || exec /bin/sh
+mv /sbin/init.orig /sbin/init
+exec /sbin/init

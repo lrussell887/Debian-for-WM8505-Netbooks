@@ -29,16 +29,24 @@ log() {
 # shellcheck disable=SC2329
 cleanup() {
     local rc=$?
-    [ "$(dirs -p | wc -l)" -gt 1 ] && popd
-    log INFO "Cleaning up previous build files"
-    rm -rf .config .config.armel_none_marvell .config.old .seed.new .zImage_w_dtb modules/ rootfs/ script/
+    pwd | grep -q "$KERNEL_DIR" && popd
+
+    log INFO "Checking disk image mounts"
+    mountpoint -q boot && umount boot
+    mountpoint -q rootfs && umount rootfs
+    [ -n "$loopdev" ] && losetup | grep -q "$loopdev" && losetup -d "$loopdev"
+
+    log INFO "Cleaning up temp files"
+    rm -rf .config .config.armel_none_marvell .config.old .linux-config.deb .seed.new .zImage_w_dtb boot rootfs
+
     if [ -d "$KERNEL_DIR" ]; then
         pushd "$KERNEL_DIR"
-        log INFO "Cleaning kernel repo"
-        git rebase --abort || true
+        log INFO "Cleaning up kernel repo"
+        find .git -maxdepth 1 -type d -name 'rebase-*' | grep -q . && git rebase --abort
         git checkout -f "$KERNEL_BRANCH"
-        git branch -D rebase || true
+        git branch --list rebase | grep -q . && git branch -D rebase
     fi
+
     log OK "Cleanup complete"
     exit "$rc"
 }
@@ -71,17 +79,17 @@ git fetch origin
 git reset --hard origin/$KERNEL_BRANCH
 git clean -fdx
 
-current_version=$(make kernelversion)
+kernel_version=$(make kernelversion)
+log INFO "Kernel version: $kernel_version"
 
-if [[ ! "$current_version" =~ $KERNEL_VERSION_PATTERN ]]; then
+if [[ ! "$kernel_version" =~ $KERNEL_VERSION_PATTERN ]]; then
     log ERROR "Unexpected kernel version"
     exit 1
 fi
-log OK "Kernel version: $current_version"
 
 upstream_version=$(curl -s $KERNEL_UPSTREAM_RELEASES | jq -r '.releases[].version' | grep $KERNEL_VERSION_PATTERN)
 
-if [ "$(printf '%s\n' "$current_version" "$upstream_version" | sort -V | head -n 1)" != "$upstream_version" ]; then
+if [ "$(printf '%s\n' "$kernel_version" "$upstream_version" | sort -V | head -n 1)" != "$upstream_version" ]; then
     log WARN "Out of date, rebasing to $upstream_version"
     git config user.name "user"
     git config user.email "user@example.com"
@@ -91,16 +99,20 @@ if [ "$(printf '%s\n' "$current_version" "$upstream_version" | sort -V | head -n
     new_tree=$(git commit-tree -p refs/heads/$KERNEL_BRANCH -p HEAD -m "rebase v$upstream_version" 'HEAD^{tree}')
     git update-ref refs/heads/$KERNEL_BRANCH "$new_tree"
     git checkout $KERNEL_BRANCH
+    git branch -D rebase
+    kernel_version=$(make kernelversion)
     log OK "Rebase complete"
 fi
 
-log INFO "Applying patches"
-for patch in ../patches/*.patch; do
-    patch -p0 < "$patch"
-    log OK "Patch $patch applied"
-done
-git add .
-git commit -m "Apply patches"
+if find ../patches -maxdepth 1 -type f -name '*.patch' | grep -q .; then
+    log INFO "Applying patches"
+    for patch in ../patches/*.patch; do
+        patch -p0 < "$patch"
+        log OK "Patch $patch applied"
+    done
+    git add .
+    git commit -m "Apply patches"
+fi
 
 popd
 
@@ -108,7 +120,6 @@ log INFO "Retrieving Debian config"
 curl -o .linux-config.deb "$(lynx -dump -nonumbers -listonly $DEBIAN_LINUX_CONFIG_URL | grep '\.deb$' | head -n 1)"
 log INFO "Extracting config"
 ar p .linux-config.deb data.tar.xz | tar -xOJf - $DEBIAN_LINUX_CONFIG_FILE | unxz > .config.armel_none_marvell
-rm .linux-config.deb
 log OK "Config retrieved"
 
 log INFO "Generating olddefconfig"
@@ -129,34 +140,61 @@ log INFO "Compiling modules"
 make -C $KERNEL_DIR KCONFIG_CONFIG=../.config -j"$(nproc)" modules
 log OK "Kernel and modules built"
 
+log INFO "Creating disk image"
+mkdir build
+disk_file="build/disk_$kernel_version.img"
+dd if=/dev/zero of="$disk_file" bs=1M count=3500
+log INFO "Partitioning disk image"
+parted "$disk_file" --script mklabel msdos
+parted "$disk_file" --script mkpart primary fat32 1MiB 34MiB
+parted "$disk_file" --script mkpart primary ext4 34MiB 100%
+log INFO "Creating loop device"
+loopdev=$(losetup -fP --show "$disk_file")
+log INFO "Formatting disk image"
+mkfs.vfat -F 32 -n BOOT "$loopdev"p1
+mkfs.ext4 -L rootfs "$loopdev"p2
+log INFO "Mounting disk image"
+mkdir boot rootfs
+mount "$loopdev"p1 boot
+mount "$loopdev"p2 rootfs
+log OK "Disk image mounted"
+
 log INFO "Building boot images"
 cat $KERNEL_DIR/arch/arm/boot/zImage $KERNEL_DIR/arch/arm/boot/dts/wm8505-ref.dtb > .zImage_w_dtb
-mkdir -p script
-mkimage -A arm -O linux -T kernel -C none -a 0x8000 -e 0x8000 -n linux -d .zImage_w_dtb script/uzImage.bin
-mkimage -A arm -O linux -T script -C none -a 1 -e 0 -n "script image" -d cmd script/scriptcmd
-log INFO "Creating boot archive"
-mkdir -p build
-zip -r build/boot.zip script/
-log OK "boot.zip created"
+mkdir boot/script
+mkimage -A arm -O linux -T kernel -C none -a 0x8000 -e 0x8000 -n linux -d .zImage_w_dtb boot/script/uzImage.bin
+mkimage -A arm -O linux -T script -C none -a 1 -e 0 -n "script image" -d cmd boot/script/scriptcmd
+log OK "Boot created"
 
+log INFO "Installing modules into rootfs"
+make -C $KERNEL_DIR INSTALL_MOD_PATH=../rootfs modules_install
+log INFO "Creating upgrade tarball"
+tar --use-compress-program="pigz --best" -cf "build/upgrade_$kernel_version.tar.gz" boot rootfs
 log INFO "Building rootfs"
 multistrap -f multistrap.conf
-log INFO "Moving init for setup"
+log INFO "Moving init for first boot"
 mv rootfs/sbin/init rootfs/sbin/init.orig
 log INFO "Merging ship folder"
 cp -r ship/. rootfs/
-log INFO "Installing modules"
-make -C $KERNEL_DIR KCONFIG_CONFIG=../.config INSTALL_MOD_PATH=../rootfs modules_install
-log INFO "Creating rootfs archive"
-tar -C rootfs --use-compress-program=pigz -cf build/rootfs.tar.gz .
-log OK "rootfs.tar.gz created"
+log INFO "Configuring packages"
+systemd-nspawn --resolv-conf=off --timezone=off -D rootfs -E QEMU_CPU=arm926 -P /bin/sh << EOF
+export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true
+export LC_ALL=C LANGUAGE=C LANG=C
+/var/lib/dpkg/info/base-passwd.preinst install
+dpkg --configure -a
+EOF
+log INFO "Removing SSH keys"
+rm rootfs/etc/dropbear/dropbear_*_host_key
+log OK "Rootfs created"
 
-log INFO "Installing modules"
-mkdir -p modules
-make -C $KERNEL_DIR KCONFIG_CONFIG=../.config INSTALL_MOD_PATH=../modules modules_install
-log INFO "Creating modules archive"
-tar -C modules --use-compress-program=pigz -cf build/modules.tar.gz .
-log OK "modules.tar.gz created"
+log INFO "Unmounting disk image"
+umount boot rootfs
+log INFO "Zeroing free blocks"
+zerofree "$loopdev"p2
+log INFO "Detaching loop device"
+losetup -d "$loopdev"
+log INFO "Compressing disk image"
+pigz --best "$disk_file"
 
 log OK "Build complete"
 exit 0

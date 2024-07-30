@@ -1,0 +1,14 @@
+[Unit]
+Description=Expand rootfs
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c '\
+    [ -f /var/lib/expand-rootfs.done ] && exit 0; \
+    touch /var/lib/expand-rootfs.done && \
+    growpart /dev/mmcblk0 2 && \
+    resize2fs /dev/mmcblk0p2'
+TimeoutSec=infinity
+
+[Install]
+WantedBy=multi-user.target

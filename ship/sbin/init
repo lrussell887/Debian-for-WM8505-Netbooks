@@ -5,10 +5,10 @@ export PATH
 
 cat << 'EOF'
 
-==========================
-Debian for WM8505 Netbooks
-     First Boot Setup
-==========================
++----------------------------+
+| Debian for WM8505 Netbooks |
+|      First Boot Setup      |
++----------------------------+
 
 EOF
 
@@ -25,32 +25,29 @@ ff02::1 ip6-allnodes
 ff02::2 ip6-allrouters
 EOF
 
-# Collect account credentials
+# Create user account
 read -rp "Username for your account: " username
-while true; do
-    read -srp "Enter password: " password; echo
-    read -srp "Confirm password: " password_confirm; echo
-    [ "$password" == "$password_confirm" ] && break || echo "Passwords do not match. Please try again."
-done
-
-# Finish configuring packages
-/var/lib/dpkg/info/base-passwd.preinst install
-dpkg --configure -a
-
-# Set account credentials
-adduser --disabled-password --gecos "" "$username"
-echo "$username:$password" | chpasswd
+adduser --gecos "" "$username"
 adduser "$username" sudo
 
-# Create swap file
+# Configure timezone
+dpkg-reconfigure tzdata
+
+# Generate SSH keys
+dpkg-reconfigure dropbear
+
+# Setup swap file
 fallocate -l 256M /var/swapfile
 chmod 600 /var/swapfile
 mkswap /var/swapfile
 systemctl enable var-swapfile.swap
 
-# Enable Wi-Fi service
+# Setup WLAN
 update-alternatives --set regulatory.db /lib/firmware/regulatory.db-upstream
 systemctl enable wlan-gpio.service
+
+# Set rootfs to expand
+systemctl enable expand-rootfs.service
 
 mv /sbin/init.orig /sbin/init
 exec /sbin/init

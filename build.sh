@@ -62,6 +62,7 @@ if [ -d build ]; then
 fi
 
 trap cleanup EXIT
+trap 'log ERROR "Build error"' ERR
 trap 'exit $?' INT TERM
 
 log INFO "Starting build"
@@ -126,7 +127,7 @@ log INFO "Generating olddefconfig"
 cp seed .config
 make -C $KERNEL_DIR KCONFIG_CONFIG=../.config olddefconfig
 log INFO "Extracting enabled options"
-grep -E '=y' .config > .seed.new
+grep '=y' .config > .seed.new
 log INFO "Merging configs"
 $KERNEL_DIR/scripts/kconfig/merge_config.sh -m .config.armel_none_marvell seed
 $KERNEL_DIR/scripts/kconfig/merge_config.sh -m .config .seed.new
@@ -172,19 +173,10 @@ log INFO "Creating upgrade tarball"
 tar --use-compress-program="pigz --best" -cf "build/upgrade_$kernel_version.tar.gz" boot rootfs
 log INFO "Building rootfs"
 multistrap -f multistrap.conf
-log INFO "Moving init for first boot"
-mv rootfs/sbin/init rootfs/sbin/init.orig
 log INFO "Merging ship folder"
 cp -r ship/. rootfs/
-log INFO "Configuring packages"
-systemd-nspawn --resolv-conf=off --timezone=off -D rootfs -E QEMU_CPU=arm926 -P /bin/sh << EOF
-export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true
-export LC_ALL=C LANGUAGE=C LANG=C
-/var/lib/dpkg/info/base-passwd.preinst install
-dpkg --configure -a
-EOF
-log INFO "Removing SSH keys"
-rm rootfs/etc/dropbear/dropbear_*_host_key
+log INFO "Configuring rootfs"
+systemd-nspawn --resolv-conf=off --timezone=off -D rootfs -E QEMU_CPU=arm926 -P /bin/sh < config-rootfs.sh
 log OK "Rootfs created"
 
 log INFO "Unmounting disk image"

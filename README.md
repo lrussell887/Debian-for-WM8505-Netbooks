@@ -1,34 +1,34 @@
 # Debian for Wondermedia WM8505 Netbooks
-This project delivers a complete, modern Debian build for WM8505-powered netbooks. It has been specifically tested for the Sylvania SYNET07526, the sub-$100 netbook [peddled by CVS in 2011](https://www.yourwarrantyisvoid.com/2011/01/08/hardware-pr0n-sylvania-netbook-from-cvs/). It should work on other generic WM8505 netbooks, as well as the WM8650 with some adjustments*.
+This project delivers a complete, modern Debian build for WM8505-powered netbooks. It has been specifically tested for the Sylvania SYNET07526, the sub-$100 netbook [sold by CVS in 2011](https://www.yourwarrantyisvoid.com/2011/01/08/hardware-pr0n-sylvania-netbook-from-cvs/). It has been found to work on other generic WM8505 netbooks, and should work on the WM8650 with some adjustments*.
 
-![Netbook running Debian with FVWM](https://i.imgur.com/3693XlO.png)
-
-The [kernel](https://github.com/lrussell887/linux-vtwm) used is a rebase of linux-vtwm, a repository with patches for VIA VT8500 and Wondermedia WM8xxx SoCs. The build script automatically rebases it further to the latest 6.1.x release from upstream, fetches the [linux-config-6.1](https://packages.debian.org/bookworm/armel/linux-config-6.1) package from Debian, and adapts the most similar target, `config.armel_none_marvell`, to be compatible with the netbook using a combination of options from the `seed` and the kernel's defconfig. `multistrap` is used to build the Debian root filesystem,  and `systemd-nspawn` to configure it.
+The [kernel](https://github.com/lrussell887/linux-vtwm) used is a Linux 6.1 rebase of [linux-vtwm](https://github.com/linux-wmt/linux-vtwm), a repository with patches for VIA/Wondermedia SoCs. The build script automatically rebases further to the latest 6.1.x release from upstream, fetches the [linux-config-6.1](https://packages.debian.org/bookworm/armel/linux-config-6.1) package from Debian, and adapts the most similar target, `config.armel_none_marvell`, to be compatible with the netbook using a combination of options from the `seed` and the kernel's defconfig. `multistrap` is used to build the Debian root filesystem,  and `systemd-nspawn` to configure it.
 
 All standard system utilities and kernel modules are included, providing the functionality you would expect from a stock Debian system. USB sound cards, Wi-Fi adapters, and Ethernet adapters have been tested to work normally.
 
-<sub>\* I have been unable to test the WM8650 since I only have WM8505 devices. The kernel options should be the same, so I would expect it to work after changing `wm8505-ref.dtb` to `wm8650-mid.dts` in the build script. The `wm8505fb.patch` would likely need to be reverted as well since WM8650+ uses a [different pixel format](https://groups.google.com/d/msg/vt8500-wm8505-linux-kernel/-5V20yDM4jQ/sjlXNF8PAwAJ), which can be done by deleting the file from the `patch` folder. Wi-Fi is also handled by GPIO in the `wlan-gpio.service`, which may differ between devices. If you are having trouble, please reach out as I may be able to assist.</sub>
+![Netbook running Debian with FVWM](https://i.imgur.com/3693XlO.png)
+
+<sub>\* I have been unable to test the WM8650 since I only have WM8505 devices. The kernel options should be the same, so I would expect it to work after changing `wm8505-ref.dtb` to `wm8650-mid.dts` in the build script. The `wm8505fb.patch` would likely need to be reverted as well since WM8650+ uses a [different pixel format](https://groups.google.com/d/msg/vt8500-wm8505-linux-kernel/-5V20yDM4jQ/sjlXNF8PAwAJ), which can be done by deleting the file from the `patch` folder. Please reach out if you run into issues or are able to get this working.</sub>
 
 ## Credits
-Special thanks to [wh0's bookconfig](https://github.com/wh0/bookconfig) for providing a kernel 6.1.x rebase of the abandoned [linux-vtwm](https://github.com/linux-wmt/linux-vtwm) project. This project would not have been possible without them.
+Special thanks to wh0's [bookconfig](https://github.com/wh0/bookconfig) for providing a Linux 6.1 rebase of the abandoned [linux-vtwm](https://github.com/linux-wmt/linux-vtwm) project. This would not have been possible without them.
 
 ## Project Details
-- **Packages:** The `multistrap.conf` file integrates all of Debian's standard system utilities by explicitly listing priority `important` and `standard` packages. It also includes additional packages for Wi-Fi, SSH, and other utilities.
-- **Services:**
-    - *var-swapfile.swap* - Enables the `/var/swapfile` swap file.
-    - *wlan-gpio.service* -  Uses `gpioset` to connect/disconnect the built-in USB Wi-Fi adapter.
-    - *expand-rootfs.service* - Expands the rootfs during boot using `growpart` and `resize2fs`. It checks for and creates `/var/lib/expand-rootfs.done` to avoid subsequent runs.
-- **Udev Rules:** `10-display.rules` is included to allow control of display contrast in the `wm8505-fb` driver. It defaults to the maximum contrast value of 128. A reboot is required to change this setting.
-- **Init:** The `/sbin/init` file is moved to `/sbin/init.orig`, and is replaced with a bash script facilitating first boot setup.
+- **Packages:** `multistrap.conf` integrates all of Debian's standard system utilities by explicitly listing priority `important` and `standard` packages. It also includes additional packages for Wi-Fi, SSH, and other utilities.
+- **Patches:** `wm8505fb.patch` applies the correct default contrast value for the WM8505.
+- **Systemd:**
+    - **expand-rootfs.service** - Expands the root filesystem using `growpart` and `resize2fs` on first boot.
+    - **gen-dropbear-keys.service** - Generates Dropbear SSH host keys on first boot.
+    - **wlan-gpio.service** -  Uses `gpioset` to connect/disconnect the built-in USB Wi-Fi adapter.
+    - **systemd-firstboot.service.d/override.conf** - Drop-in file to override prompts for `systemd-firstboot`.
+- **Udev:** `10-display.rules` allows control of display contrast in the `wm8505-fb` driver. The default of 128 is the max value. A reboot is required to change this setting.
+- **Fstab:** Mounts the swap file `/var/swapfile`.
 
 ## Build Details
-- **First Boot:** The first boot process takes under 5 minutes. You will be asked to set a hostname, create a user account, and configure your timezone.
--  **Root Access:** A root password is not set. Log in with the created user account and use `sudo` for system changes.
-- **SSH server:** Dropbear is included, and SSH keys are generated during first boot.
-- **Memory:** A 256 MB swap file is created and enabled during first boot.
-- **Wi-Fi:** The built-in Wi-Fi adapter is controlled by GPIO, and is enabled on boot. You can configure your network via `nmtui`. These Wi-Fi adapters are usually 802.11g, so ensure your network allows this.
-- **Storage:** The root filesystem is expanded to fit the SD card during first boot.
-- **Display:** The kernel has been patched to set the screen to full brightness during startup.
+- **First Boot:** The first boot process takes about 5 minutes. You will be asked to configure your timezone, set a hostname, and create a root password.
+- **Storage:** The root filesystem is expanded to fit the SD card on first boot.
+- **Memory:** A 256 MB swap file is included in the disk image and is mounted by `/etc/fstab` on boot.
+- **Wi-Fi:** The built-in Wi-Fi adapter is controlled by GPIO and is enabled on boot. You can configure your network via `nmtui`. Ensure your network allows [802.11g](https://en.wikipedia.org/wiki/IEEE_802.11g-2003) clients.
+- **SSH:** [Dropbear SSH](https://matt.ucc.asn.au/dropbear/dropbear.html) is included, and keys are generated on first boot.
 
 ## Limitations
 - **Display:** The display backlight is always on and cannot be controlled.
@@ -83,7 +83,7 @@ For setting up a new Debian installation.
             ```
         - Then eject the SD card using:
             ```bash
-            eject /dev/sdX
+            sudo eject /dev/sdX
             ```
 2. **Insert the SD Card:** Place the imaged SD card into your netbook.
 3. **Boot the Netbook:** Turn on your netbook. It will boot from the SD card automatically.
@@ -92,7 +92,7 @@ For setting up a new Debian installation.
 For upgrading an existing Debian installation to a newer kernel.
 
 **Requirements:**
-- An existing imaged SD card.
+- An SD card with an existing image.
 - A copy of `upgrade_6.1.X.tar.gz`.
 - A Linux computer.
 

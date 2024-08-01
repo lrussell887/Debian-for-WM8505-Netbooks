@@ -1,13 +1,11 @@
 [Unit]
-Description=Expand rootfs
+Description=Expand root filesystem
+ConditionFirstBoot=yes
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c '\
-    [ -f /var/lib/expand-rootfs.done ] && exit 0; \
-    touch /var/lib/expand-rootfs.done && \
-    growpart /dev/mmcblk0 2 && \
-    resize2fs /dev/mmcblk0p2'
+ExecStart=/usr/bin/growpart /dev/mmcblk0 2
+ExecStart=/usr/sbin/resize2fs /dev/mmcblk0p2
 TimeoutSec=infinity
 
 [Install]

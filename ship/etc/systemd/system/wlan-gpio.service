@@ -1,10 +1,9 @@
 [Unit]
 Description=WLAN GPIO
-Requires=NetworkManager.service
 
 [Service]
 Type=simple
-ExecStart=gpioset -msignal gpiochip0 2=1
+ExecStart=/usr/bin/gpioset -msignal gpiochip0 2=1
 
 [Install]
 WantedBy=multi-user.target

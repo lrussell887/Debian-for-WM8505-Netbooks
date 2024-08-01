@@ -10,6 +10,8 @@ fallocate -l 256M /var/swapfile
 chmod 600 /var/swapfile
 mkswap /var/swapfile
 
+update-alternatives --set regulatory.db /lib/firmware/regulatory.db-upstream
+
 rm /etc/dropbear/dropbear_*_host_key
 rm /etc/machine-id
 

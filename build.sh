@@ -144,7 +144,7 @@ log OK "Kernel and modules built"
 log INFO "Creating disk image"
 mkdir build
 disk_file="build/disk_$kernel_version.img"
-dd if=/dev/zero of="$disk_file" bs=1M count=3500
+dd if=/dev/zero of="$disk_file" bs=1M count=3500 conv=fsync
 log INFO "Partitioning disk image"
 parted "$disk_file" --script mklabel msdos
 parted "$disk_file" --script mkpart primary fat32 1MiB 34MiB

@@ -1,0 +1,10 @@
+[Unit]
+Description=Update /etc/hosts with hostname
+ConditionFirstBoot=yes
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'sed -i "2i 127.0.1.1\t$(cat /etc/hostname)" /etc/hosts'
+
+[Install]
+WantedBy=multi-user.target

@@ -14,10 +14,11 @@ Special thanks to wh0's [bookconfig](https://github.com/wh0/bookconfig) for prov
 
 ## Project Details
 - **Packages:** `multistrap.conf` integrates all of Debian's standard system utilities by explicitly listing priority `important` and `standard` packages. It also includes additional packages for Wi-Fi, SSH, and other utilities.
-- **Patches:** `wm8505fb.patch` applies the correct default contrast value for the WM8505.
+- **Patches:** `wm8505fb.patch` applies the correct default contrast value for the WM8505 in the `wm8505-fb` driver.
 - **Systemd:**
     - **expand-rootfs.service** - Expands the root filesystem using `growpart` and `resize2fs` on first boot.
     - **gen-dropbear-keys.service** - Generates Dropbear SSH host keys on first boot.
+    - **update-hosts.service** - Updates /etc/hosts with the hostname on first boot.
     - **wlan-gpio.service** -  Uses `gpioset` to connect/disconnect the built-in USB Wi-Fi adapter.
     - **systemd-firstboot.service.d/override.conf** - Drop-in file to override prompts for `systemd-firstboot`.
 - **Udev:** `10-display.rules` allows control of display contrast in the `wm8505-fb` driver. The default of 128 is the max value. A reboot is required to change this setting.
@@ -46,9 +47,10 @@ Building requires a Debian or Ubuntu-based system due to its use of `multistrap`
     ```bash
     sudo apt install bc binfmt-support bison build-essential curl debian-archive-keyring dosfstools e2fsprogs flex gcc-arm-linux-gnueabi git jq libssl-dev lynx multistrap parted pigz qemu-user-static systemd-container u-boot-tools zerofree
     ```
-2. Clone this repository:
+2. Clone this repository and navigate to its directory:
     ```bash
     git clone https://github.com/lrussell887/Debian-for-WM8505-Netbooks.git
+    cd Debian-for-WM8505-Netbooks/
     ```
 3. Run `build.sh` (needs root privileges):
     ```bash
@@ -79,7 +81,7 @@ For setting up a new Debian installation.
             ```
         - Identify your SD card device (e.g., `/dev/sdX`), and run:
             ```bash
-            sudo dd if=/path/to/disk_6.1.X.img of=/dev/sdX bs=1M status=progress
+            sudo dd if=/path/to/disk_6.1.X.img of=/dev/sdX bs=1M conv=fsync
             ```
         - Then eject the SD card using:
             ```bash

@@ -92,10 +92,10 @@ mv /tmp/upgrade/rootfs/lib/modules/* /lib/modules/
 log OK "Kernel upgrade complete"
 
 read -rp "Reboot now? (y/n) " reboot
-[[ $reboot == [yY] ]] && {
+if [[ $reboot == [yY] ]]; then
     reboot
     exit 0
-}
+fi
 
 log WARN "Please reboot as soon as possible to complete the upgrade."
 exit 0

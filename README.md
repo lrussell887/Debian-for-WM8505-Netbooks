@@ -92,7 +92,7 @@ For upgrading an existing Debian installation to a newer kernel.
 ### Automated Upgrade (recommended):
 1. Run the following on your netbook (needs root privileges):
     ```bash
-    wget -q -O - https://raw.githubusercontent.com/lrussell887/Debian-for-WM8505-Netbooks/master/upgrade-kernel.sh | sudo bash
+    sudo bash -c "$(wget -q -O - https://raw.githubusercontent.com/lrussell887/Debian-for-WM8505-Netbooks/master/upgrade-kernel.sh)"
     ```
 
 ### Manual Upgrade:

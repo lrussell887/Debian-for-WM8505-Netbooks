@@ -43,16 +43,12 @@ Most of these limitations are due to using the open-source [linux-vtwm](https://
 
 ## Building
 Building requires a Debian or Ubuntu-based system due to its use of `multistrap`. Follow these steps:
-1. Install the necessary packages:
-    ```bash
-    sudo apt install bc binfmt-support bison build-essential curl debian-archive-keyring dosfstools e2fsprogs flex gcc-arm-linux-gnueabi git jq libssl-dev lynx multistrap parted pigz qemu-user-static systemd-container u-boot-tools zerofree
-    ```
-2. Clone this repository and navigate to its directory:
+1. Clone this repository and navigate to its directory:
     ```bash
     git clone https://github.com/lrussell887/Debian-for-WM8505-Netbooks.git
     cd Debian-for-WM8505-Netbooks/
     ```
-3. Run `build.sh` (needs root privileges):
+2. Run `build.sh` (needs root privileges):
     ```bash
     sudo ./build.sh
     ```
@@ -61,7 +57,7 @@ The resulting build files (`disk_6.1.X.img.gz` and `upgrade_6.1.X.tar.gz`) are p
 ## Releases
 Pre-compiled builds are available on the Releases page.
 - **disk_6.1.X.img.gz** - Full disk image containing `boot` and `rootfs` partitions. Used for new installations.
-- **upgrade_6.1.X.tar.gz** - Tarball containing updated `boot` files and kernel modules to be placed into `rootfs`. Used for upgrading an existing installation.
+- **upgrade_6.1.X.tar.gz** - Tarball containing updated `boot` files and kernel modules. Used for upgrading an existing installation.
 
 ## Installing
 For setting up a new Debian installation.
@@ -72,9 +68,9 @@ For setting up a new Debian installation.
 - An imaging tool like [balenaEtcher](https://www.balena.io/etcher) (recommended) or `dd`.
 
 **Installation Steps:**
-1. **Image the SD Card:**
-    - **With balenaEtcher:** Use balenaEtcher to flash `disk_6.1.X.img.gz` to your SD card. It will decompress the image for you.
-    - **With `dd`:**
+1. Image the SD Card:
+    - With balenaEtcher: Use balenaEtcher to flash `disk_6.1.X.img.gz` to your SD card. It will decompress the image for you.
+    - With `dd`:
         - Decompress the image with:
             ```bash
             gzip -d /path/to/disk_6.1.X.img.gz
@@ -87,12 +83,19 @@ For setting up a new Debian installation.
             ```bash
             sudo eject /dev/sdX
             ```
-2. **Insert the SD Card:** Place the imaged SD card into your netbook.
-3. **Boot the Netbook:** Turn on your netbook. It will boot from the SD card automatically.
+2. Insert the imaged SD card into your netbook.
+3. Turn on your netbook. It will boot from the SD card automatically.
 
 ## Upgrading
 For upgrading an existing Debian installation to a newer kernel.
 
+### Automated Upgrade (recommended):
+1. Run the following on your netbook (needs root privileges):
+    ```bash
+    wget -q -O - https://raw.githubusercontent.com/lrussell887/Debian-for-WM8505-Netbooks/master/upgrade-kernel.sh | sudo bash
+    ```
+
+### Manual Upgrade:
 **Requirements:**
 - An SD card with an existing image.
 - A copy of `upgrade_6.1.X.tar.gz`.

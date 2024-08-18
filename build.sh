@@ -19,7 +19,7 @@ KERNEL_VERSION_PATTERN='^6\.1\.'
 KERNEL_UPSTREAM_RELEASES=https://www.kernel.org/releases.json
 KERNEL_UPSTREAM_REPO=https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git
 
-DEBIAN_POOL_LINUX_URL=https://ftp.debian.org/debian/pool/main/l/linux/
+DEBIAN_LINUX_POOL=https://ftp.debian.org/debian/pool/main/l/linux/
 DEBIAN_LINUX_CONFIG_PATTERN='linux-config-6.1_.*_armel\.deb$'
 DEBIAN_LINUX_CONFIG_FILE=./usr/src/linux-config-6.1/config.armel_none_marvell.xz
 
@@ -34,17 +34,24 @@ log() {
     esac
 }
 
+ask() {
+    local prompt=$1
+    while true; do
+        read -rp "$prompt [y/n]: " yn
+        case $yn in
+            [Yy]) return 0 ;;
+            [Nn]) return 1 ;;
+        esac
+    done
+}
+
 # shellcheck disable=SC2329
 cleanup() {
     log INFO "Cleaning up"
     mountpoint -q boot && umount boot
     mountpoint -q rootfs && umount rootfs
-
-    if [ -n "$loopdev" ] && losetup | grep -q "^$loopdev"; then
-        losetup -d "$loopdev"
-    fi
-
-    rm -rf .config .config.debian .config.old .linux-config.deb .seed.new .zImage_w_dtb boot rootfs
+    rm -rf boot rootfs
+    [ -n "$loopdev" ] && losetup | grep -q "^$loopdev" && losetup -d "$loopdev"
 
     if [ -d "$KERNEL_DIR" ]; then
         cd "$KERNEL_DIR"
@@ -67,12 +74,12 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 if [ -d build ]; then
-    log ERROR "Build directory exists; remove it to rebuild"
-    exit 1
+    log WARN "A previous build exists; remove to rebuild"
+    ask "Remove build directory?" || exit 1
+    rm -r build
 fi
 
 log INFO "Starting build"
-
 trap cleanup EXIT
 trap 'log ERROR "Build error"' ERR
 
@@ -94,7 +101,12 @@ if [ ! -d "$KERNEL_DIR" ]; then
     log OK "Cloned kernel"
 fi
 
-(
+if [ -f $KERNEL_DIR/vmlinux ] && [ -f $KERNEL_DIR/modules.order ]; then
+    log WARN "A previous kernel exists; rebuild to upgrade"
+    ask "Rebuild kernel?" || skip_kernel=true
+fi
+
+if [ -z "$skip_kernel" ]; then (
     cd $KERNEL_DIR
 
     log INFO "Resetting kernel repo"
@@ -113,8 +125,8 @@ fi
     upstream_kernel=$(wget -q -O - $KERNEL_UPSTREAM_RELEASES | jq -r '.releases[].version' | grep $KERNEL_VERSION_PATTERN)
     log INFO "Upstream kernel: $upstream_kernel"
 
-    if [ "$(printf '%s\n' "$current_kernel" "$upstream_kernel" | sort -V | head -n 1)" != "$upstream_kernel" ]; then
-        log WARN "Kernel out-of-date, rebasing"
+    if [ "$(printf '%s\n' "$current_kernel" "$upstream_kernel" | sort -V | tail -n 1)" != "$current_kernel" ]; then
+        log WARN "Kernel repo out-of-date, upgrading"
         git config user.name "user"
         git config user.email "user@example.com"
         git checkout -b rebase "$KERNEL_BRANCH^2"
@@ -124,7 +136,7 @@ fi
         git update-ref refs/heads/$KERNEL_BRANCH "$new_tree"
         git checkout $KERNEL_BRANCH
         git branch -D rebase
-        log OK "Rebased kernel"
+        log OK "Upgraded kernel"
     fi
 
     log INFO "Applying patches"
@@ -137,43 +149,44 @@ fi
         git commit -m "Apply patches"
         log OK "Applied patches"
     fi
-)
 
-log INFO "Retrieving Debian config"
-deb_url=$(lynx -dump -listonly -nonumbers $DEBIAN_POOL_LINUX_URL | grep "$DEBIAN_LINUX_CONFIG_PATTERN" | tail -n 1)
-wget -O .linux-config.deb "$deb_url"
-log INFO "Extracting config"
-ar p .linux-config.deb data.tar.xz | tar -xOJf - $DEBIAN_LINUX_CONFIG_FILE | unxz > .config.debian
-log OK "Retrieved config"
+    log INFO "Retrieving Debian config"
+    deb_url=$(lynx -dump -listonly -nonumbers $DEBIAN_LINUX_POOL | grep "$DEBIAN_LINUX_CONFIG_PATTERN" | tail -n 1)
+    wget -O .linux-config.deb "$deb_url"
+    log INFO "Extracting config"
+    ar p .linux-config.deb data.tar.xz | tar -xOJf - $DEBIAN_LINUX_CONFIG_FILE | unxz > .config.debian
+    log OK "Retrieved config"
 
-log INFO "Generating seeded default config"
-cp seed .config
-make -C $KERNEL_DIR KCONFIG_CONFIG=../.config olddefconfig
-log INFO "Filtering for enabled options"
-grep '=y' .config > .seed.new
-log INFO "Merging with Debian config"
-$KERNEL_DIR/scripts/kconfig/merge_config.sh -m .config.debian seed
-$KERNEL_DIR/scripts/kconfig/merge_config.sh -m .config .seed.new
-log INFO "Finalizing config"
-make -C $KERNEL_DIR KCONFIG_CONFIG=../.config olddefconfig
-log OK "Config created"
+    log INFO "Generating seeded default config"
+    cp ../seed .config
+    make olddefconfig
+    log INFO "Creating default config seed"
+    grep '=y' .config > .seed.defconfig
+    log INFO "Merging with Debian config"
+    scripts/kconfig/merge_config.sh -m .config.debian ../seed
+    scripts/kconfig/merge_config.sh -m .config .seed.defconfig
+    log INFO "Finalizing config"
+    make olddefconfig
+    log OK "Config created"
 
-log INFO "Compiling kernel"
-make -C $KERNEL_DIR KCONFIG_CONFIG=../.config -j"$(nproc)" zImage wm8505-ref.dtb
-log INFO "Compiling modules"
-make -C $KERNEL_DIR KCONFIG_CONFIG=../.config -j"$(nproc)" modules
-log OK "Compiled kernel and modules"
+    log INFO "Building kernel"
+    make -j"$(nproc)" zImage wm8505-ref.dtb
+    cat arch/arm/boot/zImage arch/arm/boot/dts/wm8505-ref.dtb > zImage_w_dtb
+    log INFO "Building modules"
+    make -j"$(nproc)" modules
+    log OK "Built kernel and modules"
+) fi
 
 log INFO "Creating disk image"
 kernel_version=$(make -C $KERNEL_DIR -s kernelversion)
-disk_file="build/disk_$kernel_version.img"
+disk_file="build/disk-$kernel_version.img"
 mkdir build
 dd if=/dev/zero of="$disk_file" bs=1M count=3500 conv=fsync
 log INFO "Partitioning disk image"
 parted "$disk_file" --script mklabel msdos
 parted "$disk_file" --script mkpart primary fat32 1MiB 34MiB
 parted "$disk_file" --script mkpart primary ext4 34MiB 100%
-log INFO "Creating loop device"
+log INFO "Setting up loop device"
 loopdev=$(losetup -fP --show "$disk_file")
 log INFO "Formatting disk image"
 mkfs.vfat -F 32 -n BOOT "$loopdev"p1
@@ -184,24 +197,27 @@ mount "$loopdev"p1 boot
 mount "$loopdev"p2 rootfs
 log OK "Disk image mounted"
 
-log INFO "Building boot images"
-cat $KERNEL_DIR/arch/arm/boot/zImage $KERNEL_DIR/arch/arm/boot/dts/wm8505-ref.dtb > .zImage_w_dtb
+log INFO "Generating boot images"
 mkdir boot/script
-mkimage -A arm -O linux -T kernel -C none -a 0x8000 -e 0x8000 -n linux -d .zImage_w_dtb boot/script/uzImage.bin
+mkimage -A arm -O linux -T kernel -C none -a 0x8000 -e 0x8000 -n linux -d $KERNEL_DIR/zImage_w_dtb boot/script/uzImage.bin
 mkimage -A arm -O linux -T script -C none -a 1 -e 0 -n "script image" -d cmd boot/script/scriptcmd
-log OK "Boot created"
+log OK "Boot ready"
 
 log INFO "Installing modules"
 make -C $KERNEL_DIR INSTALL_MOD_PATH=../rootfs modules_install
 log INFO "Creating upgrade tarball"
-tar --use-compress-program="pigz -9" -cf "build/upgrade_$kernel_version.tar.gz" boot rootfs
+tar --use-compress-program="pigz -9" -cf "build/upgrade-$kernel_version.tar.gz" boot rootfs
 log INFO "Bootstrapping rootfs"
 multistrap -f multistrap.conf
 log INFO "Merging ship folder"
 cp -r ship/. rootfs/
 log INFO "Configuring rootfs"
-systemd-nspawn --resolv-conf=off --timezone=off -D rootfs -E QEMU_CPU=arm926 -P /bin/sh < config-rootfs.sh
-log OK "Rootfs created"
+systemd-nspawn --resolv-conf=off --timezone=off -D rootfs -P /bin/sh < config-rootfs.sh
+log INFO "Creating swap file"
+dd if=/dev/zero of=rootfs/swapfile bs=1M count=256 conv=fsync
+chmod 600 rootfs/swapfile
+mkswap rootfs/swapfile
+log OK "Rootfs ready"
 
 log INFO "Unmounting disk image"
 umount boot rootfs

@@ -1,7 +1,7 @@
 # Debian for Wondermedia WM8505 Netbooks
 This project delivers a complete, modern Debian build for WM8505-powered netbooks. It has been specifically tested for the Sylvania SYNET07526, the sub-$100 netbook [sold by CVS in 2011](https://www.yourwarrantyisvoid.com/2011/01/08/hardware-pr0n-sylvania-netbook-from-cvs/). It has been found to work on other generic WM8505 netbooks, and should work on the WM8650 with some adjustments*.
 
-The [kernel](https://github.com/lrussell887/linux-vtwm) used is a Linux 6.1 rebase of [linux-vtwm](https://github.com/linux-wmt/linux-vtwm), a repository with patches for VIA/Wondermedia SoCs. The build script automatically rebases further to the latest 6.1.x release from upstream, fetches the [linux-config-6.1](https://packages.debian.org/bookworm/armel/linux-config-6.1) package from Debian, and adapts the most similar target, `config.armel_none_marvell`, to be compatible with the netbook using a combination of options from the `seed` and the kernel's defconfig. `multistrap` is used to build the Debian root filesystem,  and `systemd-nspawn` to configure it.
+The kernel used is a Linux 6.1 rebase of [linux-vtwm](https://github.com/linux-wmt/linux-vtwm), a repository with patches for VIA/Wondermedia SoCs. The build script automatically rebases further to the latest 6.1.x release from upstream, fetches the [linux-config-6.1](https://packages.debian.org/bookworm/armel/linux-config-6.1) package from Debian, and adapts the most similar target, `config.armel_none_marvell`, to be compatible with the netbook using a combination of options from the `seed` and the kernel's defconfig. `multistrap` is used to build the Debian root filesystem,  and `systemd-nspawn` to configure it.
 
 All standard system utilities and kernel modules are included, providing the functionality you would expect from a stock Debian system. USB sound cards, Wi-Fi adapters, and Ethernet adapters have been tested to work normally.
 
@@ -22,7 +22,7 @@ Special thanks to wh0's [bookconfig](https://github.com/wh0/bookconfig) for prov
     - **wlan-gpio.service** -  Uses `gpioset` to connect/disconnect the built-in USB Wi-Fi adapter.
     - **systemd-firstboot.service.d/override.conf** - Drop-in file to override prompts for `systemd-firstboot`.
 - **Udev:** `10-display.rules` allows control of display contrast in the `wm8505-fb` driver. The default of 128 is the max value. A reboot is required to change this setting.
-- **Fstab:** Mounts the swap file `/var/swapfile`.
+- **Fstab:** Mounts the swap file `/swapfile`.
 
 ## Build Details
 - **First Boot:** The first boot process takes about 5 minutes. You will be asked to configure your timezone, set a hostname, and create a root password.
@@ -52,32 +52,32 @@ Building requires a Debian or Ubuntu-based system due to its use of `multistrap`
     ```bash
     sudo ./build.sh
     ```
-The resulting build files (`disk_6.1.X.img.gz` and `upgrade_6.1.X.tar.gz`) are placed in the `build` directory.
+The resulting build files (`disk-6.1.X.img.gz` and `upgrade-6.1.X.tar.gz`) are placed in the `build` directory.
 
 ## Releases
 Pre-compiled builds are available on the Releases page.
-- **disk_6.1.X.img.gz** - Full disk image containing `boot` and `rootfs` partitions. Used for new installations.
-- **upgrade_6.1.X.tar.gz** - Tarball containing updated `boot` files and kernel modules. Used for upgrading an existing installation.
+- **disk-6.1.X.img.gz** - Full disk image containing `boot` and `rootfs` partitions. Used for new installations.
+- **upgrade-6.1.X.tar.gz** - Tarball containing updated `boot` files and kernel modules. Used for upgrading an existing installation.
 
 ## Installing
 For setting up a new Debian installation.
 
 **Requirements:**
 - An SD card between 4GB and 32GB.
-- A copy of `disk_6.1.X.img.gz`.
+- A copy of `disk-6.1.X.img.gz`.
 - An imaging tool like [balenaEtcher](https://www.balena.io/etcher) (recommended) or `dd`.
 
 **Installation Steps:**
 1. Image the SD Card:
-    - With balenaEtcher: Use balenaEtcher to flash `disk_6.1.X.img.gz` to your SD card. It will decompress the image for you.
+    - With balenaEtcher: Use it to directly flash `disk-6.1.X.img.gz` to your SD card.
     - With `dd`:
         - Decompress the image with:
             ```bash
-            gzip -d /path/to/disk_6.1.X.img.gz
+            gzip -d /path/to/disk-6.1.X.img.gz
             ```
         - Identify your SD card device (e.g., `/dev/sdX`), and run:
             ```bash
-            sudo dd if=/path/to/disk_6.1.X.img of=/dev/sdX bs=1M conv=fsync
+            sudo dd if=/path/to/disk-6.1.X.img of=/dev/sdX bs=1M conv=fsync
             ```
         - Then eject the SD card using:
             ```bash
@@ -98,7 +98,7 @@ For upgrading an existing Debian installation to a newer kernel.
 ### Manual Upgrade:
 **Requirements:**
 - An SD card with an existing image.
-- A copy of `upgrade_6.1.X.tar.gz`.
+- A copy of `upgrade-6.1.X.tar.gz`.
 - A Linux computer.
 
 **Upgrade Steps:**
@@ -111,12 +111,12 @@ For upgrading an existing Debian installation to a newer kernel.
 2. Update the `boot` partition:
     ```bash
     sudo rm -rf boot/*
-    sudo tar -xzvf /path/to/upgrade_6.1.X.tar.gz -C boot --strip-components=1 boot
+    sudo tar -xzvf /path/to/upgrade-6.1.X.tar.gz -C boot --strip-components=1 boot
     ```
 3. Update the `rootfs` partition:
     ```bash
     sudo rm -rf rootfs/lib/modules/*
-    sudo tar -xzvf /path/to/upgrade_6.1.X.tar.gz -C rootfs --strip-components=1 --skip-old-files rootfs
+    sudo tar -xzvf /path/to/upgrade-6.1.X.tar.gz -C rootfs --strip-components=1 --skip-old-files rootfs
     ```
 4. Eject the SD card:
     ```bash

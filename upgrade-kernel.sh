@@ -3,7 +3,7 @@ set -e
 
 REQUIRED_PACKAGES=(aria2 jq pv)
 
-GITHUB_RELEASES=https://api.github.com/repos/lrussell887/Debian-for-WM8505-Netbooks/releases/latest
+KERNEL_RELEASES=https://api.github.com/repos/lrussell887/Debian-for-WM8505-Netbooks/releases/latest
 
 log() {
     local level=$1
@@ -14,6 +14,17 @@ log() {
         WARN) echo "$(tput setaf 3)[WARN]$(tput sgr0) $*" ;;
         ERROR) echo "$(tput setaf 1)[ERROR]$(tput sgr0) $*" ;;
     esac
+}
+
+ask() {
+    local prompt=$1
+    while true; do
+        read -rp "$prompt [y/n]: " yn
+        case $yn in
+            [Yy]) return 0 ;;
+            [Nn]) return 1 ;;
+        esac
+    done
 }
 
 # shellcheck disable=SC2329
@@ -40,7 +51,6 @@ if [ "$(df --output=avail / | tail -n 1 | xargs)" -le 4000000 ]; then
 fi
 
 log INFO "Starting kernel upgrade"
-
 trap cleanup EXIT
 trap 'log ERROR "Upgrade error"' ERR
 
@@ -59,7 +69,7 @@ fi
 current_kernel=$(uname -r | cut -d'-' -f1)
 log INFO "Current kernel: $current_kernel"
 
-releases_json=$(wget -q -O - "$GITHUB_RELEASES")
+releases_json=$(wget -q -O - "$KERNEL_RELEASES")
 latest_kernel=$(echo "$releases_json" | jq -r '.tag_name' | cut -d'-' -f1)
 log INFO "Latest kernel: $latest_kernel"
 
@@ -91,11 +101,7 @@ mv /tmp/upgrade/rootfs/lib/modules/* /lib/modules/
 
 log OK "Kernel upgrade complete"
 
-read -rp "Reboot now? (y/n) " reboot
-if [[ $reboot == [yY] ]]; then
-    reboot
-    exit 0
-fi
+log WARN "New kernel modules cannot be loaded until you reboot"
+ask "Reboot now?" && reboot
 
-log WARN "Please reboot as soon as possible to complete the upgrade."
 exit 0

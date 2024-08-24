@@ -5,7 +5,7 @@ The kernel used is a Linux 6.1 rebase of [linux-vtwm](https://github.com/linux-w
 
 All standard system utilities and kernel modules are included, providing the functionality you would expect from a stock Debian system. USB sound cards, Wi-Fi adapters, and Ethernet adapters have been tested to work normally.
 
-![Netbook running Debian with FVWM](https://i.imgur.com/3693XlO.png)
+![Netbook running Debian with FVWM](https://github.com/user-attachments/assets/5db36720-9a77-4f2d-a1ab-35503dd062d3)
 
 <sub>\* I have been unable to test the WM8650 since I only have WM8505 devices. The kernel options should be the same, so I would expect it to work after changing `wm8505-ref.dtb` to `wm8650-mid.dts` in the build script. The `wm8505fb.patch` would likely need to be reverted as well since WM8650+ uses a [different pixel format](https://groups.google.com/d/msg/vt8500-wm8505-linux-kernel/-5V20yDM4jQ/sjlXNF8PAwAJ), which can be done by deleting the file from the `patch` folder. Please reach out if you run into issues or are able to get this working.</sub>
 

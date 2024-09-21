@@ -98,10 +98,8 @@ log OK "Installed boot images"
 log INFO "Installing kernel modules"
 rm -rf /lib/modules/*
 mv /tmp/upgrade/rootfs/lib/modules/* /lib/modules/
-
 log OK "Kernel upgrade complete"
 
 log WARN "New kernel modules cannot be loaded until you reboot"
 ask "Reboot now?" && reboot
-
 exit 0

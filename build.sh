@@ -8,7 +8,7 @@ export CFLAGS='-march=armv5te -mtune=arm926ej-s'
 REQUIRED_PACKAGES=(
     bc binfmt-support bison build-essential debian-archive-keyring dosfstools
     e2fsprogs flex gcc-arm-linux-gnueabi git jq libssl-dev lynx multistrap
-    parted pigz qemu-user-static systemd-container u-boot-tools zerofree
+    parted pigz pv qemu-user-static systemd-container u-boot-tools zerofree
 )
 
 KERNEL_REPO=https://github.com/lrussell887/linux-vtwm.git
@@ -22,6 +22,8 @@ KERNEL_UPSTREAM_REPO=https://git.kernel.org/pub/scm/linux/kernel/git/stable/linu
 DEBIAN_LINUX_POOL=https://ftp.debian.org/debian/pool/main/l/linux/
 DEBIAN_LINUX_CONFIG_PATTERN='linux-config-6.1_.*_armel\.deb$'
 DEBIAN_LINUX_CONFIG_FILE=./usr/src/linux-config-6.1/config.armel_none_marvell.xz
+
+COMPRESSION_LEVEL=9
 
 log() {
     local level=$1
@@ -50,8 +52,8 @@ cleanup() {
     log INFO "Cleaning up"
     mountpoint -q boot && umount boot
     mountpoint -q rootfs && umount rootfs
-    rm -rf boot rootfs
-    [ -n "$loopdev" ] && losetup | grep -q "^$loopdev" && losetup -d "$loopdev"
+    [ -n "$loopdev" ] && losetup | grep -q "^$loopdev\b" && losetup -d "$loopdev"
+    rm -rf disk.img boot rootfs
 
     if [ -d "$KERNEL_DIR" ]; then
         cd "$KERNEL_DIR"
@@ -178,16 +180,13 @@ if [ -z "$skip_kernel" ]; then (
 ) fi
 
 log INFO "Creating disk image"
-kernel_version=$(make -C $KERNEL_DIR -s kernelversion)
-disk_file="build/disk-$kernel_version.img"
-mkdir build
-dd if=/dev/zero of="$disk_file" bs=1M count=3500 conv=fsync
+dd if=/dev/zero of=disk.img bs=1M count=3500 conv=fsync
 log INFO "Partitioning disk image"
-parted "$disk_file" --script mklabel msdos
-parted "$disk_file" --script mkpart primary fat32 1MiB 34MiB
-parted "$disk_file" --script mkpart primary ext4 34MiB 100%
+parted disk.img --script mklabel msdos
+parted disk.img --script mkpart primary fat32 1MiB 34MiB
+parted disk.img --script mkpart primary ext4 34MiB 100%
 log INFO "Setting up loop device"
-loopdev=$(losetup -fP --show "$disk_file")
+loopdev=$(losetup -fP --show disk.img)
 log INFO "Formatting disk image"
 mkfs.vfat -F 32 -n BOOT "$loopdev"p1
 mkfs.ext4 -L rootfs "$loopdev"p2
@@ -206,7 +205,12 @@ log OK "Boot ready"
 log INFO "Installing modules"
 make -C $KERNEL_DIR INSTALL_MOD_PATH=../rootfs modules_install
 log INFO "Creating upgrade tarball"
-tar --use-compress-program="pigz -9" -cf "build/upgrade-$kernel_version.tar.gz" boot rootfs
+upgrade_size=$(du -sb boot rootfs | awk '{sum += $1} END {print sum}')
+kernel_version=$(make -C $KERNEL_DIR -s kernelversion)
+mkdir build
+tar -cf - boot rootfs | pv -s "$upgrade_size" | pigz -$COMPRESSION_LEVEL > "build/upgrade-$kernel_version.tar.gz"
+log OK "Created upgrade tarball"
+
 log INFO "Bootstrapping rootfs"
 multistrap -f multistrap.conf
 log INFO "Merging ship folder"
@@ -226,7 +230,6 @@ zerofree "$loopdev"p2
 log INFO "Detaching loop device"
 losetup -d "$loopdev"
 log INFO "Compressing disk image"
-pigz -9 "$disk_file"
-
+pv disk.img | pigz -$COMPRESSION_LEVEL > "build/disk-$kernel_version.img.gz"
 log OK "Build complete"
 exit 0

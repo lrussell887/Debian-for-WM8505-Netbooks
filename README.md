@@ -1,13 +1,13 @@
 # Debian for Wondermedia WM8505 Netbooks
-This project delivers a complete, modern Debian 13 (Trixie) build for netbooks powered by the Wondermedia WM8505 SoC. It was specifically tested on the Sylvania SYNET07526, the sub-$100 Windows CE netbook [sold by CVS in 2011](https://www.yourwarrantyisvoid.com/2011/01/08/hardware-pr0n-sylvania-netbook-from-cvs/), but it should work on other generic WM8505 devices and should be adaptable to the WM8650*.
+This project delivers a complete, modern Debian 13 (Trixie) build for netbooks powered by the Wondermedia WM8505 SoC. It was specifically tested on the Sylvania SYNET07526, the sub-$100 Windows CE netbook [sold by CVS in 2011](https://www.yourwarrantyisvoid.com/2011/01/08/hardware-pr0n-sylvania-netbook-from-cvs/). It has been found to work on other generic WM8505 netbooks, and should work on the WM8650 with some adjustments*.
 
 The kernel is a Linux 6.12 rebase of [linux-vtwm](https://github.com/lrussell887/linux-vtwm), a repository with patches for VIA/Wondermedia SoCs. The build script automates the whole process: it updates the kernel to the latest 6.12.x release from upstream, fetches the official `armel` configuration from Debian, and merges it with custom settings to create a compatible kernel. The Debian root filesystem is built with `mmdebstrap`.
 
 All standard system utilities and kernel modules are included, providing the functionality you would expect from a stock Debian system. USB sound cards, Wi-Fi adapters, and Ethernet adapters have been tested to work normally.
 
-![Netbook running Debian with FVWM](https://github.com/user-attachments/assets/5db36720-9a77-4f2d-a1ab-35503dd062d3)
+![Netbook running Debian 13 displaying Fastfetch](https://github.com/user-attachments/assets/3ae007ce-dc48-4b1f-b52a-39f16e9201eb)
 
-<sub>\* I only have WM8505 devices, so I haven't been able to test this on a WM8650. To get it working, you'll need to make a few adjustments. First, edit `build.sh` and change the device tree target from `vt8500/wm8505-ref.dtb` to `vt8500/wm8650-mid.dtb`. The display settings also need to be reverted; the contrast patch is a specific fix for the WM8505, so delete `patches/wm8505fb.patch`. Then, edit `overlay/etc/udev/rules.d/10-display.rules` and change the contrast `ATTR` value from `"128"` to `"16"`. These changes are needed because the WM8650+ uses a [different pixel format](https://groups.google.com/d/msg/vt8500-wm8505-linux-kernel/-5V20yDM4jQ/sjlXNF8PAwAJ). Please reach out if you run into issues, or to let me know if you're able to get it working.</sub>
+<sub>\* I only have WM8505 devices, so I haven't been able to test this on a WM8650. The kernel config should be the same, so all you'll need to do is change the device tree target from `vt8500/wm8505-ref.dtb` to `vt8500/wm8650-mid.dtb` in `build.sh` to get it to compile. The contrast patch is specific to the WM8505, so delete `patches/wm8505fb.patch`. Also edit `overlay/etc/udev/rules.d/10-display.rules` and change the contrast `ATTR` value from `128` to `16`. These changes are needed because the WM8650+ uses a [different pixel format](https://groups.google.com/d/msg/vt8500-wm8505-linux-kernel/-5V20yDM4jQ/sjlXNF8PAwAJ).</sub>
 
 ## Credits
 Special thanks to wh0's [bookconfig](https://github.com/wh0/bookconfig) for maintaining the functionally abandoned [linux-vtwm](https://github.com/linux-wmt/linux-vtwm) project, all the way up to Linux 6.1. Their work saved a massive amount of effort in getting the kernel to 6.12.
@@ -22,6 +22,7 @@ Special thanks to wh0's [bookconfig](https://github.com/wh0/bookconfig) for main
     - **update-hosts.service** - Updates /etc/hosts with the hostname on first boot.
     - **wlan-gpio.service** -  Uses `gpioset` to connect/disconnect the built-in USB Wi-Fi adapter.
     - **systemd-firstboot.service.d/override.conf** - Drop-in file to override prompts for `systemd-firstboot`.
+    - **getty<span>@</span>.service.d/override.conf** - Delays login screen until `expand-rootfs` and `gen-dropbear-keys` have run.
 - **Udev:** `10-display.rules` allows control of display contrast in the `wm8505-fb` driver. The default of 128 is the max value. A reboot is required to change this setting.
 - **Fstab:** Mounts the swap file `/swapfile`.
 
@@ -71,9 +72,12 @@ For setting up a new Debian installation.
 **Installation Steps:**
 1. Image the SD Card:
     - With Raspberry Pi Imager:
-        - **Choose OS:** Click "CHOOSE OS", select "Use custom", and open your `disk-6.12.X-wm8505.img.gz` file.
-        - **Choose Storage:** Click "CHOOSE STORAGE" and select your SD card.
-        - **Write:** Click "NEXT". Choose "NO" for applying OS customizations, then "YES" to start flashing.
+        - Choose OS:
+            - Click "CHOOSE OS", select "Use custom", and open `disk-6.12.X-wm8505.img.gz`.
+        - Choose Storage:
+            - Click "CHOOSE STORAGE" and select your SD card.
+        - Write:
+            - Click "NEXT". Choose "NO" for applying OS customizations, then "YES" to start flashing.
     - With `dd`:
         - Decompress the image with:
             ```bash

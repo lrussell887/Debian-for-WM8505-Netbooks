@@ -1,0 +1,14 @@
+[Unit]
+Description=Generate Dropbear host keys
+ConditionFirstBoot=yes
+Before=dropbear.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "KEY=/etc/dropbear/dropbear_rsa_host_key; /usr/bin/dropbearkey -t rsa -f $KEY | grep '^ssh-rsa' > $KEY.pub"
+ExecStart=/bin/sh -c "KEY=/etc/dropbear/dropbear_ecdsa_host_key; /usr/bin/dropbearkey -t ecdsa -f $KEY | grep '^ecdsa-' > $KEY.pub"
+ExecStart=/bin/sh -c "KEY=/etc/dropbear/dropbear_ed25519_host_key; /usr/bin/dropbearkey -t ed25519 -f $KEY | grep '^ssh-ed25519' > $KEY.pub"
+TimeoutSec=infinity
+
+[Install]
+WantedBy=multi-user.target

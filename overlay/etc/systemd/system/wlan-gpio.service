@@ -3,7 +3,7 @@ Description=WLAN GPIO
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/gpioset -msignal gpiochip0 2=1
+ExecStart=/usr/bin/gpioset -c gpiochip0 2=1
 
 [Install]
 WantedBy=multi-user.target

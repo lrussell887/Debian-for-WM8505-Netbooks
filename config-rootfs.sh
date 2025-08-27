@@ -1,18 +1,16 @@
 #!/bin/sh
 set -e
 
-export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true
-export LC_ALL=C LANGUAGE=C LANG=C
-
-# Configure packages
-/var/lib/dpkg/info/base-passwd.preinst install
-dpkg --configure -a
-
 # Use upstream regulatory.db
 update-alternatives --set regulatory.db /lib/firmware/regulatory.db-upstream
 
 # Remove SSH keys
-rm /etc/dropbear/dropbear_*_host_key
+rm /etc/dropbear/dropbear_*_host_key*
+
+# Create swap file
+dd if=/dev/zero of=/swapfile bs=1M count=256 conv=fsync
+chmod 600 /swapfile
+mkswap /swapfile
 
 # Trigger systemd-firstboot
 rm /etc/machine-id

@@ -1,6 +1,6 @@
---- drivers/video/fbdev/wm8505fb.c
-+++ drivers/video/fbdev/wm8505fb.c
-@@ -342,7 +342,7 @@
+--- a/drivers/video/fbdev/wm8505fb.c
++++ b/drivers/video/fbdev/wm8505fb.c
+@@ -341,7 +341,7 @@ static int wm8505fb_probe(struct platform_device *pdev)
  	fbi->fb.screen_buffer		= fb_mem_virt;
  	fbi->fb.screen_size		= fb_mem_len;
  

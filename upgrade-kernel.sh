@@ -85,7 +85,7 @@ log OK "Downloaded tarball"
 
 log INFO "Extracting tarball"
 mkdir /tmp/upgrade
-pv /tmp/upgrade.tmp | tar -xf - -C /tmp/upgrade
+pv /tmp/upgrade.tmp | tar -xzf - -C /tmp/upgrade
 log OK "Extracted tarball"
 
 log INFO "Installing boot images"

@@ -37,6 +37,7 @@ EXTRA_PACKAGES=(
 DESKTOP_PACKAGES=(
 	alsa-utils
 	dbus-user-session
+	dillo
 	fonts-wqy-microhei
 	fox1.6-utils
 	gnome-icon-theme

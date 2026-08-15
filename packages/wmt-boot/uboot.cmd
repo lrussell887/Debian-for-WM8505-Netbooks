@@ -14,5 +14,5 @@ fatload mmc 0 0 /script/uzImage.bin
 
 textout 20 410 "${LOAD_MSG}" c0c0c0
 textout 20 440 "${BOOT_MSG}" 00ff00
-setenv bootargs root=/dev/mmcblk0p2 rw noinitrd console=tty1 rootwait ${EXTRA_CMDLINE}
+setenv bootargs root=/dev/mmcblk0p2 rw noinitrd console=tty1 rootwait wmt_panel.lcd=${lcdparam} ${EXTRA_CMDLINE}
 bootm 0

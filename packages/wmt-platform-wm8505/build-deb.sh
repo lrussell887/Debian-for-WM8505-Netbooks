@@ -14,6 +14,7 @@ log INFO "Building wmt-platform-wm8505 ($VERSION)"
 mkdir -p "$DEBS"
 staging=$(mktemp -d)
 install -Dm644 "$SRC/50-wm8505.conf" "$staging/etc/alsa/conf.d/50-wm8505.conf"
+install -Dm644 "$SRC/50-wm8505-init.conf" "$staging/usr/share/alsa/init/postinit/50-wm8505.conf"
 install -Dm755 "$SRC/wmt-battery-cal" "$staging/usr/libexec/wmt-battery-cal"
 install -Dm644 "$SRC/99-wmt-battery.rules" "$staging/usr/lib/udev/rules.d/99-wmt-battery.rules"
 install -Dm755 "$SRC/postinst" "$staging/DEBIAN/postinst"

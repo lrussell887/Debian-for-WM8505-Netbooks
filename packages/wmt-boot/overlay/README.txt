@@ -3,8 +3,8 @@ WMT OS
 
 FIRST-TIME SETUP
 ----------------
-Before its first boot, WMT OS requires a hostname, timezone, username, and
-account passwords.
+Before its first boot, WMT OS requires a hostname, timezone, keymap,
+username, and account passwords.
 
   [ Windows or Windows CE ]
   Run setup.cmd, fill out the form, and click Save to generate your setup.ini

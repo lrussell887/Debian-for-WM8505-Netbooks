@@ -2,22 +2,28 @@
 
 WMT OS is a modern Linux distribution for devices powered by the WonderMedia WM8505 SoC, based on Debian 13 (Trixie).
 
-Development is focused on the Sylvania Netbook (SYNET07526 / SYNET7WID), which originally shipped with Windows CE 6.0 and was sold for $99 [by CVS in late 2010](https://www.informationweek.com/it-leadership/cvs-offers-99-sylvania-netbook). Equipped with a 300 MHz single-core [ARM926EJ-S](https://en.wikipedia.org/wiki/ARM9#ARM9E-S_and_ARM9EJ-S) SoC (utilizing the same 2001 CPU architecture as the Nintendo Wii... or rather, its coprocessor), 128 MB of RAM, and an 800x480 display, it was considered e-waste even when it was first released. Naturally, that makes it an excellent candidate for a modern Linux distribution today.
+Development is focused on the Sylvania Netbook, sold for $99 [by CVS in late 2010](https://www.informationweek.com/it-leadership/cvs-offers-99-sylvania-netbook) running Windows CE 6.0. Equipped with a 300 MHz single-core [ARM926EJ-S](https://en.wikipedia.org/wiki/ARM9#ARM9E-S_and_ARM9EJ-S) SoC (sharing the same 2001 CPU architecture as the Nintendo Wii... well, its coprocessor), 128 MB of RAM, and an 800x480 display, it was considered e-waste even when it was first released. Naturally, that makes it an excellent candidate for a modern Linux distribution today.
 
 ![Netbook running WMT OS](https://wmt-os.org/assets/netbook.png)
 
 ## Getting Started
 
-Flash an image below to an SD card and the netbook boots straight into WMT OS. A setup wizard on the card's boot partition configures the hostname, timezone, username, and account passwords prior to boot. See [INSTALLATION](INSTALLATION.md) for the full setup guide. Once installed, see [USAGE](USAGE.md) for using and maintaining your system.
+Flash an image below to an SD card and the netbook boots straight into WMT OS. A setup wizard on the card's boot partition configures the system prior to boot. See [INSTALLATION](INSTALLATION.md) for the full setup guide. Once installed, see [USAGE](USAGE.md) for using and maintaining your system.
 
 - **[wmt-os-standard.img.xz](https://releases.wmt-os.org/latest/wmt-os-standard.img.xz)** ([sha256](https://releases.wmt-os.org/latest/wmt-os-standard.img.xz.sha256)): Console image
 - **[wmt-os-desktop.img.xz](https://releases.wmt-os.org/latest/wmt-os-desktop.img.xz)** ([sha256](https://releases.wmt-os.org/latest/wmt-os-desktop.img.xz.sha256)): Desktop image (recommended)
 
 ## Hardware Support
 
+Known working models, with other WM8505 netbooks likely compatible:
+
+- Sylvania Netbook (SYNET07526 / SYNET7WID), 7" 800x480, VT1613 or VT1612A codec
+- JAY-tech 9901, 7" 800x480, VT1613 codec
+- EPC-1026, 10" 1024x600, WM9715L codec
+
 | Component                                            | Status | Notes                                           |
 | :--------------------------------------------------- | :----: | :---------------------------------------------- |
-| **Display**                                          |   🟢   | Built-in LCD panel                              |
+| **Display**                                          |   🟢   | Built-in LCD panel, resolution auto-detected    |
 | **Backlight**                                        |   🟢   | PWM brightness control                          |
 | **Graphics Acceleration**                            |        |                                                 |
 | &nbsp;&nbsp;&nbsp;&nbsp;&#8627; _Kernel_             |   🟢   | DRM/KMS driver with 2D and console acceleration |
@@ -31,9 +37,11 @@ Flash an image below to an SD card and the netbook boots straight into WMT OS. A
 | **SD Card**                                          |   🟢   | Built-in SD/MMC controller                      |
 | **Wi-Fi**                                            |   🟢   | Internal USB adapter                            |
 | **USB Peripherals**                                  |   🟢   | Keyboards, mice, audio, storage, and networking |
-| **Battery Monitoring**                               |   🟢   | Self-calibrating voltage-based estimation       |
+| **Battery Monitoring**                               |   🟢   | Self-calibrating voltage-based estimation\*     |
 
 _(Legend: 🟢 Supported | 🟡 Partial | 🔵 Planned | 🔴 Unsupported)_
+
+_\* Supported on the ADC-less VT1613 and VT1612A boards. WM9715L boards currently are not._
 
 ## Kernel
 
@@ -53,7 +61,7 @@ Images are dated builds named `wmt-os-<profile>-<stamp>.img.xz`, published at [r
 - **`config.sh`**: Build settings: cross toolchain, kernel repo and branch, image options, and package sets.
 - **`kernel-seed.config`**: Kernel options that "seed" support for the WM8505, merged over Debian's default `armel_none_rpi` config.
 - **`scripts/`**: The build pipeline, split into small single-purpose steps (`mk-config`, `mk-debs`, `mk-rootfs`, `mk-image`), plus the kernel repo helpers.
-- **`packages/`**: Debian package sources, each built by its own `build-deb.sh`: `wmt-boot/` (U-Boot boot images, the A/B rollback slot, and the boot partition's user-facing files) and `wmt-os-base/` (distribution identity and repository trust).
+- **`packages/`**: Debian package sources, each built by its own `build-deb.sh`: `wmt-boot/` (U-Boot boot images, the A/B rollback slot, and the boot partition's user-facing files), `wmt-os-base/` (distribution identity and repository trust), and `wmt-platform-wm8505/` (hardware platform configuration).
 - **`bootstrap/`**: Inputs applied while the rootfs bootstraps: `hooks-base.sh` (in-chroot configuration) and the build-time APT priorities.
 - **`overlays/`**: Trees copied verbatim over the root filesystem, including the first-boot setup service.
 

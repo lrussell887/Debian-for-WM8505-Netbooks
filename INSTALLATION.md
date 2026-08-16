@@ -7,7 +7,7 @@ WMT OS runs entirely from an SD card, leaving the netbook's internal Windows CE 
 The newest build of each profile is always available below. All releases can also be browsed directly at [releases.wmt-os.org](https://releases.wmt-os.org/).
 
 - **[wmt-os-standard.img.xz](https://releases.wmt-os.org/latest/wmt-os-standard.img.xz)** ([sha256](https://releases.wmt-os.org/latest/wmt-os-standard.img.xz.sha256)): A minimal console system with Wi-Fi, SSH, and all standard system utilities.
-- **[wmt-os-desktop.img.xz](https://releases.wmt-os.org/latest/wmt-os-desktop.img.xz)** ([sha256](https://releases.wmt-os.org/latest/wmt-os-desktop.img.xz.sha256)): Everything in standard, plus the 2D-accelerated X.org driver, IceWM, NetSurf web browser, Xfe file manager, Goggles Music Manager, a text editor, calculator, image viewer, USB drive automounting, and volume/brightness hotkeys.
+- **[wmt-os-desktop.img.xz](https://releases.wmt-os.org/latest/wmt-os-desktop.img.xz)** ([sha256](https://releases.wmt-os.org/latest/wmt-os-desktop.img.xz.sha256)): Everything in standard, plus the 2D-accelerated X.org driver, IceWM, the Dillo and NetSurf web browsers, Xfe file manager, Goggles Music Manager, a text editor, calculator, image viewer, USB drive automounting, and volume/brightness hotkeys.
 
 To verify your download, place the checksum file next to the image and run:
 
@@ -39,7 +39,7 @@ Use your preferred imaging tool to write the OS to your card:
 
 ## 3. Pre-configure
 
-WMT OS runs completely unattended on first boot. It reads your desired hostname, timezone, username, and account passwords from a `setup.ini` file on the card's FAT boot partition.
+WMT OS runs completely unattended on first boot. It reads your desired hostname, timezone, keymap, username, and account passwords from a `setup.ini` file on the card's FAT boot partition.
 
 You can generate this file using a visual setup wizard included directly on the flashed SD card. Choose one of these three ways to run it:
 
@@ -62,8 +62,9 @@ If you skip configuration, the system falls back to these default credentials:
 | Username      | `wmt-user` |
 | User password | `wmt-user` |
 | Timezone      | UTC        |
+| Keymap        | `us`       |
 
-The default user account is a sudoer. `setup.ini` is read once on first boot and then deleted since it holds plaintext passwords. If you boot using the defaults, be sure to change both passwords after logging in.
+The default user account is a sudoer. `setup.ini` is read once on first boot and then shredded since it holds plaintext passwords. If you boot using the defaults, be sure to change both passwords after logging in.
 
 ## 4. First boot
 

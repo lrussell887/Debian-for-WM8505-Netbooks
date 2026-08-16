@@ -3,9 +3,9 @@ set -e
 boot=/boot/uboot
 
 # Fill the setup's timezone list from the system's zoneinfo
-refresh_timezones() {
-	awk -F'\t' '/^[A-Z]/ {print $3}' /usr/share/zoneinfo/zone.tab | LC_ALL=C sort | awk '
-		NR == FNR { zone[++n] = $0; next }
+fill_timezones() {
+	html=$(awk -F'\t' '/^[A-Z]/ {print $3}' /usr/share/zoneinfo/zone.tab | LC_ALL=C sort | awk '
+		FILENAME == "-" { zone[++n] = $0; next }
 		/<!-- tzdata -->/ {
 			indent = $0
 			sub(/[^ \t].*/, "", indent)
@@ -13,7 +13,25 @@ refresh_timezones() {
 				printf "%s<option value=\"%s\">%s</option>\n", indent, zone[i], zone[i]
 		}
 		{ print }
-	' - /usr/share/wmt-boot/overlay/setup-web.html > "$boot"/setup-web.html
+	' - "$boot"/setup-web.html)
+	printf '%s\n' "$html" > "$boot"/setup-web.html
+}
+
+# Fill the setup's keymap list from the system's XKB layouts
+fill_keymaps() {
+	html=$(awk '/^! layout/ {f = 1; next} f && !NF {exit}
+		f && $1 != "us" && $1 != "custom" {c = $1; sub(/^ +[^ ]+ +/, ""); print $0 "\t" c}
+	' /usr/share/X11/xkb/rules/base.lst | LC_ALL=C sort | awk -F'\t' '
+		FILENAME == "-" { name[++n] = $1; code[n] = $2; next }
+		/<!-- xkb-data -->/ {
+			indent = $0
+			sub(/[^ \t].*/, "", indent)
+			for (i = 1; i <= n; i++)
+				printf "%s<option value=\"%s\">%s</option>\n", indent, code[i], name[i]
+		}
+		{ print }
+	' - "$boot"/setup-web.html)
+	printf '%s\n' "$html" > "$boot"/setup-web.html
 }
 
 case "$1" in
@@ -25,9 +43,10 @@ configure)
 	fi
 	mkdir -p "$boot"
 	cp -r /usr/share/wmt-boot/overlay/. "$boot"/
-	refresh_timezones
+	fill_timezones
+	fill_keymaps
 	sync
-	# Activate via trigger (not a direct deploy) so this dedups with the kernel hook in one transaction
+	# Activate via trigger so this dedups with the kernel hook in one transaction
 	dpkg-trigger --no-await wmt-deploy-boot
 	;;
 triggered)

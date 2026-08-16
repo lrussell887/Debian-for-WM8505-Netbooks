@@ -26,6 +26,7 @@
 			fieldset {
 				padding: 6px;
 				margin: 0;
+				box-sizing: border-box;
 			}
 			legend {
 				font-weight: bold;
@@ -107,6 +108,14 @@
 									</td>
 								</tr>
 								<tr>
+									<td class="label">Keymap:</td>
+									<td>
+										<select id="inp_keymap">
+											<option value="us" selected>English (US)</option><!-- xkb-data -->
+										</select>
+									</td>
+								</tr>
+								<tr>
 									<td class="label">Root Password:</td>
 									<td>
 										<input type="password" id="inp_rootpw">
@@ -177,13 +186,14 @@
 
 				var hostname    = get("inp_hostname"),
 				    timezone    = get("inp_timezone"),
+				    keymap      = get("inp_keymap"),
 				    rootpw      = get("inp_rootpw"),
 				    rootpw_conf = get("inp_rootpw_conf"),
 				    username    = get("inp_username"),
 				    userpw      = get("inp_userpw"),
 				    userpw_conf = get("inp_userpw_conf");
 
-				if (!hostname || !timezone || !rootpw || !rootpw_conf || !username || !userpw || !userpw_conf) {
+				if (!hostname || !timezone || !keymap || !rootpw || !rootpw_conf || !username || !userpw || !userpw_conf) {
 					return alert("All fields are required.");
 				}
 
@@ -197,6 +207,7 @@
 
 				var data = "[WMT_OS_SETUP]" +
 				    "\nHostname=" + hostname +
+				    "\nKeymap=" + keymap +
 				    "\nRootPassword=" + rootpw +
 				    "\nTimezone=" + timezone +
 				    "\nUserName=" + username +

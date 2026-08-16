@@ -32,7 +32,7 @@ Architecture: all
 Maintainer: $BUILDER_NAME <$BUILDER_EMAIL>
 Section: kernel
 Priority: optional
-Depends: tzdata, u-boot-tools
+Depends: tzdata, u-boot-tools, xkb-data
 Description: WonderMedia WM8505 boot integration
  Builds each kernel's U-Boot boot image, keeping the previous one as a rollback.
 EOF

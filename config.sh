@@ -21,6 +21,7 @@ export IMG_SIZE="${IMG_SIZE:-3500}" # Image size in MB
 
 EXTRA_PACKAGES=(
 	cloud-guest-utils
+	console-setup
 	debian-archive-keyring
 	dropbear
 	fastfetch

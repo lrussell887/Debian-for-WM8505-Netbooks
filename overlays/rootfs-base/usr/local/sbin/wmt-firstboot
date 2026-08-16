@@ -14,6 +14,7 @@ if [ -f "$ini" ]; then
 fi
 
 hostname=${cfg[Hostname]:-wmt-os}
+keymap=${cfg[Keymap]:-us}
 rootpw=${cfg[RootPassword]:-root}
 timezone=${cfg[Timezone]:-UTC}
 username=${cfg[UserName]:-wmt-user}
@@ -26,6 +27,15 @@ sed -i "2i 127.0.1.1\t$hostname" /etc/hosts
 [ -e "/usr/share/zoneinfo/$timezone" ] || timezone=UTC
 ln -sf "/usr/share/zoneinfo/$timezone" /etc/localtime
 echo "$timezone" > /etc/timezone
+
+[ -e "/usr/share/X11/xkb/symbols/$keymap" ] || keymap=us
+if [ "$keymap" != us ]; then
+	# Layouts that cannot type Latin keep us first, as Debian's installer does
+	ckbcomp -layout "$keymap" | grep -q "= +U+0061" || keymap="us,$keymap" toggle=grp:alt_shift_toggle,grp_led:scroll
+	sed -i "s|^XKBLAYOUT=.*|XKBLAYOUT=\"$keymap\"|; s|^XKBOPTIONS=.*|XKBOPTIONS=\"$toggle\"|" /etc/default/keyboard
+	setupcon -k --force --save
+	udevadm trigger --subsystem-match=input --action=change
+fi
 
 echo "root:$rootpw" | chpasswd
 

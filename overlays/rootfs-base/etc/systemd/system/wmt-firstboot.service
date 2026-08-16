@@ -4,7 +4,7 @@ DefaultDependencies=no
 ConditionFirstBoot=yes
 Wants=boot-uboot.mount first-boot-complete.target
 After=systemd-remount-fs.service boot-uboot.mount
-Before=sysinit.target first-boot-complete.target shutdown.target
+Before=sysinit.target first-boot-complete.target console-setup.service shutdown.target
 Conflicts=shutdown.target
 
 [Service]

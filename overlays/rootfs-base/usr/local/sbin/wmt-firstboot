@@ -10,7 +10,7 @@ declare -A cfg
 ini=/boot/uboot/setup.ini
 if [ -f "$ini" ]; then
 	while IFS='=' read -r k v || [[ $k ]]; do [[ $k ]] && cfg[$k]=${v%$'\r'}; done < "$ini"
-	rm -f "$ini" # holds plaintext passwords
+	shred -u "$ini" # Holds plaintext passwords
 fi
 
 hostname=${cfg[Hostname]:-wmt-os}

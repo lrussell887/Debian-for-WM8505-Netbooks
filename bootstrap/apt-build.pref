@@ -1,8 +1,8 @@
 # Build-time priorities, dropped from the image: local debs over the archive over Debian
 Package: *
 Pin: origin ""
-Pin-Priority: 1002
+Pin-Priority: 991
 
 Package: *
 Pin: origin "apt.wmt-os.org"
-Pin-Priority: 1001
+Pin-Priority: 990
